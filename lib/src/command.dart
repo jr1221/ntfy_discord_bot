@@ -185,7 +185,6 @@ class NtfyCommand {
             id('info', (IChatContext context) {
               EmbedBuilder infoEmbed = EmbedBuilder()
                 ..title = 'Bot Info'
-                ..description = 'See technical info'
                 ..timestamp = DateTime.now()
                 ..addField(
                     name: 'Library',
