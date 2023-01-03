@@ -14,5 +14,8 @@ Subscribing to messages as they come in is not supported, and probably will not 
 It probably requires some internal DB of the different streams, as well as a full add/delete/view of such streams on a per-user basis.
 I may get around to trying this, but not for a while.
 
-### 
-NOTICE: Messages are not encrypted in any way, and can be plainly read on the bot and ntfy API server.  Do not share sensitive data!
+### NOTICE: Messages are not encrypted in any way, and can be plainly read on the bot and ntfy API server.  Do not share sensitive data!
+
+### Example of usage (see /help for more info):
+https://user-images.githubusercontent.com/53871299/210292190-eeefa801-15f5-4b93-973c-fe2aad2ce25d.mp4
+
