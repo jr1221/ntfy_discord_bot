@@ -1,6 +1,4 @@
-import 'dart:io';
-
-import './interface.dart';
+import './ntfy_interface.dart';
 import 'package:ntfy_dart/ntfy_dart.dart';
 import 'package:nyxx/nyxx.dart' hide ActionTypes;
 import 'package:nyxx_commands/nyxx_commands.dart';
@@ -179,30 +177,6 @@ class NtfyCommand {
 
   /// Root list of commands associated with the bot
   List<ChatCommand> get commands => [
-        ChatCommand(
-            'info',
-            'Get info about the bot',
-            id('info', (IChatContext context) {
-              EmbedBuilder infoEmbed = EmbedBuilder()
-                ..title = 'Bot Info'
-                ..timestamp = DateTime.now()
-                ..addField(
-                    name: 'Library',
-                    content: '[Nyxx](https://nyxx.l7ssha.xyz/)',
-                    inline: true)
-                ..addFooter((footer) {
-                  footer.text =
-                      'Dart SDK ${Platform.version.split("(").first} on ${Platform.operatingSystem.onlyFirstCaps()}';
-                });
-
-              ComponentMessageBuilder infoResponse = ComponentMessageBuilder()
-                ..embeds = [infoEmbed]
-                ..addComponentRow(ComponentRowBuilder()
-                  ..addComponent(LinkButtonBuilder(
-                      'Source', 'https://github.com/jr1221/ntfy_discord_bot')));
-
-              context.respond(infoResponse);
-            })),
         ChatCommand(
             'help',
             'Get info about ntfy connector',
@@ -827,10 +801,5 @@ class PollWrapper {
 extension on String {
   String? emptyToNull() {
     return isNotEmpty ? this : null;
-  }
-
-  String onlyFirstCaps() {
-    String lowered = toLowerCase();
-    return lowered.substring(0, 1).toUpperCase() + lowered.substring(1);
   }
 }

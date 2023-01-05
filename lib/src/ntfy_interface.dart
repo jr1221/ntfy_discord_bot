@@ -1,6 +1,6 @@
 import 'package:ntfy_dart/ntfy_dart.dart';
 
-import 'command.dart' show PollWrapper;
+import 'ntfy_commands.dart' show PollWrapper;
 
 class State {
   final NtfyClient _client = NtfyClient();

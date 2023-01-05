@@ -3,14 +3,19 @@ import 'package:nyxx/nyxx.dart';
 import 'package:nyxx_commands/nyxx_commands.dart';
 
 /// Environment variables (pass in with --define=<KEY>=<VALUE>, system environment variables not supported!
-/// API_TOKEN
-///
-/// (for single guild setup)
-/// GUILD_ID
+/// API_TOKEN (required, from discord dev page)
+/// GUILD_ID (optional, for single guild setup, leave unset to for global command registration)
 Future<void> main() async {
+
+  // check to ensure API_TOKEN is set, or else somewhat cryptic message is returned
+  if (!bool.hasEnvironment('API_TOKEN')) {
+    print('Error: API_TOKEN env var unset. Use --define=<KEY>=<VALUE> to set it!');
+    return;
+  }
+
   CommandsPlugin commands = CommandsPlugin(
-      prefix: mentionOr((_) => '|'),
-      guild: Snowflake(String.fromEnvironment('GUILD_ID')),
+      prefix: null,
+      guild: bool.hasEnvironment('GUILD_ID') ? Snowflake(String.fromEnvironment('GUILD_ID')) : null,
       options: CommandsOptions(
           type: CommandType.slashOnly,
           defaultResponseLevel: ResponseLevel.public));
@@ -32,20 +37,26 @@ Future<void> main() async {
 
   final ntfyCommand = NtfyCommand();
 
-  Converter<DateTime> dateTimeConverter =
-      Converter<DateTime>((viewRaw, context) {
-    String view = viewRaw.getQuotedWord();
-    return DateTime.tryParse(view);
-  });
-
+  // add all commands included in ntfy_commands.dart
   for (final command in ntfyCommand.commands) {
     commands.addCommand(command);
   }
 
+  // add info command from info_command.dart
+  commands.addCommand(InfoCommand().infoCommand);
+
+  // create and add DateTime converter for Duration set ino publishing messages
+  Converter<DateTime> dateTimeConverter =
+  Converter<DateTime>((viewRaw, context) {
+    String view = viewRaw.getQuotedWord();
+    return DateTime.tryParse(view);
+  });
   commands.addConverter(dateTimeConverter);
 
+  // sanity check ensure commands are originating from slash commands
   commands.check(ChatCommandCheck());
 
+  // handle errors a little more gracefully, most of the exceptions in here cannot be thrown by this app
   commands.onCommandError.listen((error) async {
     if (error is CommandInvocationException) {
       String? title;
@@ -100,7 +111,7 @@ Future<void> main() async {
       if (error is ConverterFailedException &&
           context is InteractionChatContext) {
         await context.respond(MessageBuilder.content(
-            '${error.input.getQuotedWord()} is not a valid square!'));
+            '${error.input.getQuotedWord()} is not a valid date!'));
         return;
       }
     }
@@ -108,6 +119,7 @@ Future<void> main() async {
     print('Unhandled exception: $error');
   });
 
+  // print rate limit events if they happen
   outerBot.eventsRest.onRateLimited.listen((rateLimitedEvent) {
     print(
         rateLimitedEvent.response?.reasonPhrase ?? rateLimitedEvent.toString());

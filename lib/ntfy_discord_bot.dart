@@ -1,3 +1,4 @@
 library ntfy_discord_bot;
 
-export 'src/command.dart' show NtfyCommand;
+export 'src/ntfy_commands.dart' show NtfyCommand;
+export 'src/info_command.dart' show InfoCommand;
