@@ -6,16 +6,18 @@ import 'package:nyxx_commands/nyxx_commands.dart';
 /// API_TOKEN (required, from discord dev page)
 /// GUILD_ID (optional, for single guild setup, leave unset to for global command registration)
 Future<void> main() async {
-
   // check to ensure API_TOKEN is set, or else somewhat cryptic message is returned
   if (!bool.hasEnvironment('API_TOKEN')) {
-    print('Error: API_TOKEN env var unset. Use --define=<KEY>=<VALUE> to set it!');
+    print(
+        'Error: API_TOKEN env var unset. Use --define=<KEY>=<VALUE> to set it!');
     return;
   }
 
   CommandsPlugin commands = CommandsPlugin(
       prefix: null,
-      guild: bool.hasEnvironment('GUILD_ID') ? Snowflake(String.fromEnvironment('GUILD_ID')) : null,
+      guild: bool.hasEnvironment('GUILD_ID')
+          ? Snowflake(String.fromEnvironment('GUILD_ID'))
+          : null,
       options: CommandsOptions(
           type: CommandType.slashOnly,
           defaultResponseLevel: ResponseLevel.public));
@@ -47,7 +49,7 @@ Future<void> main() async {
 
   // create and add DateTime converter for Duration set ino publishing messages
   Converter<DateTime> dateTimeConverter =
-  Converter<DateTime>((viewRaw, context) {
+      Converter<DateTime>((viewRaw, context) {
     String view = viewRaw.getQuotedWord();
     return DateTime.tryParse(view);
   });

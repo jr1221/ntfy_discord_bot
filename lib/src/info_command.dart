@@ -12,24 +12,39 @@ class InfoCommand {
         EmbedBuilder infoEmbed = EmbedBuilder()
           ..title = 'Bot Info'
           ..description = 'See technical info'
-          ..author = (EmbedAuthorBuilder()..name = 'Jack1221#6744'..url = 'https://github.com/jr1221'..iconUrl = 'https://avatars.githubusercontent.com/u/53871299?v=4')
+          ..author = (EmbedAuthorBuilder()
+            ..name = 'Jack1221#6744'
+            ..url = 'https://github.com/jr1221'
+            ..iconUrl = 'https://avatars.githubusercontent.com/u/53871299?v=4')
           ..timestamp = DateTime.now()
-          ..addField(name: 'Cached guilds', content: context.client.guilds.length, inline: true)
-          ..addField(name: 'Cached users', content: context.client.users.length, inline: true)
-          ..addField(name: 'Cached channels', content: context.client.channels.length, inline: true)
+          ..addField(
+              name: 'Cached guilds',
+              content: context.client.guilds.length,
+              inline: true)
+          ..addField(
+              name: 'Cached users',
+              content: context.client.users.length,
+              inline: true)
+          ..addField(
+              name: 'Cached channels',
+              content: context.client.channels.length,
+              inline: true)
           ..addField(
               name: 'Library',
-              content: '[Nyxx](https://nyxx.l7ssha.xyz/) v${(context.client as INyxxWebsocket).version}',
+              content:
+                  '[Nyxx](https://nyxx.l7ssha.xyz/) v${(context.client as INyxxWebsocket).version}',
               inline: true)
-          ..addField(name: 'Shard', content:'${(context.guild?.shard.id ?? 0) + 1} of ${(context.client as INyxxWebsocket).shards}')
+          ..addField(
+              name: 'Shard',
+              content:
+                  '${(context.guild?.shard.id ?? 0) + 1} of ${(context.client as INyxxWebsocket).shards}')
           ..addField(
               name: 'Uptime',
               content: (DateTime.now().difference(context.client.startTime)),
               inline: true)
           ..addField(name: 'Memory Usage', content: memoryUsage(), inline: true)
           ..addFooter((footer) {
-            footer.text =
-            'Dart SDK $platformVersion on $operatingSystemName';
+            footer.text = 'Dart SDK $platformVersion on $operatingSystemName';
           });
 
         ComponentMessageBuilder infoResponse = ComponentMessageBuilder()
@@ -41,8 +56,8 @@ class InfoCommand {
                 (context.client as INyxxWebsocket).app.getInviteUrl(),
               ),
             )
-            ..addComponent(
-                LinkButtonBuilder('Source', 'https://github.com/jr1221/ntfy_discord_bot')));
+            ..addComponent(LinkButtonBuilder(
+                'Source Code', 'https://github.com/jr1221/ntfy_discord_bot')));
 
         context.respond(infoResponse);
       }));

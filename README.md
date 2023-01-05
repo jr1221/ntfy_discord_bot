@@ -4,13 +4,19 @@
 
 This bot allows you to send and poll for messages in the [ntfy](https://ntfy.sh) API.  
 
-Slash Command Features:
+Slash Command Features in a channel or DM:
  - Publish messages with all customizations
  - Poll messages with all filters
 
-All interface features are supported through slash command arguments and modals.  It is cumbersome but helpful if you would like to send or check notifications in a discord channel.
+All interface features available on the web or cURL platforms are supported through slash command arguments and modals.  
+The modals add a few clicks to actually publishing the message, but allow for greater customization.  
 
-Subscribing to messages as they come in is not supported, and probably will not be.  Feel free to PR or fork to figure this out.
+To-do/Features not supported:
+ - Subscribing to messages*
+ - Re-opening a modal after submitting it. (i.e. you can only change advanced options once without starting over)
+ - Preset publishing options on a per-channel or per-user basis
+
+*Subscribing to messages live via stream listening is not supported, and probably will not be.  Feel free to PR or fork to figure this out.
 It probably requires some internal DB of the different streams, as well as a full add/delete/view of such streams on a per-user basis.
 I may get around to trying this, but not for a while.
 
@@ -18,4 +24,23 @@ I may get around to trying this, but not for a while.
 
 ### Example of usage (see /help for more info):
 https://user-images.githubusercontent.com/53871299/210292190-eeefa801-15f5-4b93-973c-fe2aad2ce25d.mp4
+
+## Configuring
+
+Requirements:
+ - A discord dev account with a bot configured
+ - Dart version 2.18.2 or greater
+
+Get and unpack the [latest version](https://github.com/jr1221/ntfy_discord_bot/releases) of the source code.
+
+Run the code. Define the discord API token using `--define=API_TOKEN=<YOUR_TOKEN_HERE>`.  Optionally, also define the server ID of which you want to have the commands appear with as `--define=GUILD_ID=<YOUR_GUILD_ID_HERE>`.
+Note that if you do not specify a guild, the bot will show slash commands in all servers it is added to.  The downside of this is that it takes one hour for slash command signatures to update/appear in global slash commands.
+
+`dart --define=API_TOKEN=<AAAAAAAAAAAAAAAAAAAAAAA> --define=GUILD_ID=AAAAAAAA ./path/to/project/bin/ntfy_discord_bot.dart`
+
+At this time compiling may be a challenge due to dart:mirrors, see [nyxx-compile](https://github.com/nyxx-discord/nyxx_commands/blob/dev/bin/compile.dart).
+
+### Contributing
+Contributions are accepted and encouraged.  Use standard dart format and latest nyxx_commands 5.0 conventions.
+
 
