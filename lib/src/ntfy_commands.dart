@@ -7,85 +7,6 @@ import 'package:nyxx_interactions/nyxx_interactions.dart';
 class NtfyCommand {
   final State _state;
 
-  // <---- PUBLISH COMPONENT IDs ---->
-
-  // Publish root buttons
-  static const String _publishViewActionButtonId = 'publish-viewaction-button';
-  static const String _publishBroadcastActionButtonId =
-      'publish-broadcastaction-button';
-  static const String _publishHttpActionButtonId = 'publish-httpaction-button';
-  static const String _publishOptsButtonId = 'publish-opts-button';
-  static const String _publishButtonId = 'publish-blank-button';
-  static const String _publishAdvOptsButtonId = 'publish-advopts-button';
-
-  // Publish root priority select
-  static const String _publishPrioritySelectId = 'publish-priority-select';
-
-  // Publish basic options keys
-  static const String _publishOptsInputMessageId = 'publish-opts-modal-message';
-  static const String _publishOptsInputTitleId = 'publish-opts-modal-title';
-  static const String _publishOptsInputFilenameId =
-      'publish-opts-modal-filename';
-  static const String _publishOptsInputTagsId = 'publish-opts-modal-tags';
-  static const String _publishOptsInputAttachmentId =
-      'publish-opts-modal-attachment';
-
-  // Publish advanced options keys
-  static const String _publishAdvOptsInputEmailId =
-      'publish-advopts-modal-email';
-  static const String _publishAdvOptsInputClickId =
-      'publish-advopts-modal-click';
-  static const String _publishAdvOptsInputIconId = 'publish-advopts-modal-icon';
-  static const String _publishAdvOptsInputAuthUsernameId =
-      'publish-advopts-modal-authusername';
-  static const String _publishAdvOptsInputAuthPasswordId =
-      'publish-advopts-modal-authpassword';
-
-  // Publish view action keys
-  static const String _publishViewActionInputLabelId =
-      'publish-viewaction-modal-label';
-  static const String _publishViewActionInputUrlId =
-      'publish-viewaction-modal-url';
-  static const String _publishViewActionInputClearId =
-      'publish-viewaction-modal-clear';
-
-  // Publish broadcast action keys
-  static const String _publishBroadcastActionInputLabelId =
-      'publish-broadcastaction-modal-label';
-  static const String _publishBroadcastActionInputIntentId =
-      'publish-broadcastaction-modal-intent';
-  static const String _publishBroadcastActionInputExtrasId =
-      'publish-broadcastaction-modal-extras';
-  static const String _publishBroadcastActionInputClearId =
-      'publish-broadcastaction-modal-clear';
-
-  // Publish http action keys
-  static const String _publishHttpActionInputLabelId =
-      'publish-httpaction-modal-label';
-  static const String _publishHttpActionInputUrlId =
-      'publish-httpaction-modal-url';
-  static const String _publishHttpActionInputHeadersId =
-      'publish-httpaction-modal-headers';
-  static const String _publishHttpActionInputBodyId =
-      'publish-httpaction-modal-body';
-  static const String _publishHttpActionInputClearId =
-      'publish-httpaction-modal-clear';
-
-  // <---- POLL COMPONENT IDs ---->
-
-  // Poll root buttons
-  static const String _pollFetchButtonId = 'poll-fetch-button';
-  static const String _pollFilterButtonId = 'poll-filter-button';
-
-  // Poll root priority select
-  static const String _pollPriorityId = 'poll-priority-multiselect';
-
-  // Poll filter modal keys
-  static const String _pollFilterInputMessageId = 'poll-filter-modal-message';
-  static const String _pollFilterInputTitleId = 'poll-filter-modal-title';
-  static const String _pollFilterInputTagsId = 'poll-filter-modal-tags';
-  static const String _pollFilterInputIdId = 'poll-filter-modal-id';
-
   final Map<IUser, PublishableMessage> _publishQueue = {};
   final Map<IUser, PollWrapper> _pollQueue = {};
 
@@ -243,6 +164,14 @@ class NtfyCommand {
                     bool? cache,
                 @Description('use FCM to send messages')
                     bool? firebase]) async {
+              final publishPrioritySelectId = ComponentId.generate();
+              final publishButtonId = ComponentId.generate();
+              final publishOptsButtonId = ComponentId.generate();
+              final publishAdvOptsButtonId = ComponentId.generate();
+              final publishViewActionButtonId = ComponentId.generate();
+              final publishBroadcastActionButtonId = ComponentId.generate();
+              final publishHttpActionButtonId = ComponentId.generate();
+
               // add topic, cache, delay, and firebase to message
               _publishQueue[context.user] = PublishableMessage(topic: topic)
                 ..cache = cache
@@ -253,7 +182,8 @@ class NtfyCommand {
                 ..content =
                     'Configure your message below: (can only click each button once).'
                 ..addComponentRow(ComponentRowBuilder()
-                  ..addComponent(MultiselectBuilder(_publishPrioritySelectId, [
+                  ..addComponent(
+                      MultiselectBuilder(publishPrioritySelectId.toString(), [
                     MultiselectOptionBuilder('minimum', 'min'),
                     MultiselectOptionBuilder('low', 'low'),
                     MultiselectOptionBuilder('none', 'none')
@@ -261,37 +191,41 @@ class NtfyCommand {
                     MultiselectOptionBuilder('high', 'high'),
                     MultiselectOptionBuilder('maximum', 'max'),
                   ])
-                    ..placeholder = '(Optional) Select a priority level'))
+                        ..placeholder = '(Optional) Select a priority level'))
                 ..addComponentRow(ComponentRowBuilder()
+                  ..addComponent(ButtonBuilder('View',
+                      publishViewActionButtonId.toString(), ButtonStyle.danger))
                   ..addComponent(ButtonBuilder(
-                      'View', _publishViewActionButtonId, ButtonStyle.danger))
-                  ..addComponent(ButtonBuilder('Broadcast',
-                      _publishBroadcastActionButtonId, ButtonStyle.danger))
+                      'Broadcast',
+                      publishBroadcastActionButtonId.toString(),
+                      ButtonStyle.danger))
                   ..addComponent(ButtonBuilder(
-                      'HTTP', _publishHttpActionButtonId, ButtonStyle.danger)))
+                      'HTTP',
+                      publishHttpActionButtonId.toString(),
+                      ButtonStyle.danger)))
                 ..addComponentRow(ComponentRowBuilder()
+                  ..addComponent(ButtonBuilder('Publish',
+                      publishButtonId.toString(), ButtonStyle.primary))
+                  ..addComponent(ButtonBuilder('Customize',
+                      publishOptsButtonId.toString(), ButtonStyle.primary))
                   ..addComponent(ButtonBuilder(
-                      'Publish', _publishButtonId, ButtonStyle.primary))
-                  ..addComponent(ButtonBuilder(
-                      'Customize', _publishOptsButtonId, ButtonStyle.primary))
-                  ..addComponent(ButtonBuilder('Advanced',
-                      _publishAdvOptsButtonId, ButtonStyle.secondary)));
+                      'Advanced',
+                      publishAdvOptsButtonId.toString(),
+                      ButtonStyle.secondary)));
 
               await context.respond(askOps);
 
               // handle priority selection, responding with confirmation
               context
-                  .awaitSelection<String>(_publishPrioritySelectId)
+                  .awaitSelection<String>(publishPrioritySelectId)
                   .then((event) {
                 _publishQueue[event.user]?.priority =
                     PriorityLevels.values.byName(event.selected.toLowerCase());
-                event.respond(ComponentMessageBuilder()
-                  ..content = 'Priority of ${event.selected} saved!'
-                  ..componentRows = []);
+                event.acknowledge();
               });
 
               // handle publish button, responding with message receipt returned by server
-              context.awaitButtonPress(_publishButtonId).then((event) async {
+              context.awaitButtonPress(publishButtonId).then((event) async {
                 await event.acknowledge();
                 final apiResponse =
                     await _state.publish(_publishQueue[event.user]!);
@@ -300,29 +234,37 @@ class NtfyCommand {
                   ..content = 'How the message will look over discord:');
                 _publishQueue.remove(event.user);
               });
-
+              final ComponentId publishOptsInputMessageId =
+                  ComponentId.generate();
+              final ComponentId publishOptsInputTitleId =
+                  ComponentId.generate();
+              final ComponentId publishOptsInputTagsId = ComponentId.generate();
+              final ComponentId publishOptsInputAttachmentId =
+                  ComponentId.generate();
+              final ComponentId publishOptsInputFilenameId =
+                  ComponentId.generate();
               // handle customize (opts) button, responding with modal
-              context.awaitButtonPress(_publishOptsButtonId).then((event) =>
+              context.awaitButtonPress(publishOptsButtonId).then((event) =>
                   event.getModal(
                     title: 'Create message',
                     components: [
-                      (TextInputBuilder(_publishOptsInputMessageId,
+                      (TextInputBuilder(publishOptsInputMessageId.toString(),
                           TextInputStyle.paragraph, 'Message')
                         ..required = false
                         ..placeholder = 'Enter message here...'),
-                      (TextInputBuilder(_publishOptsInputTitleId,
+                      (TextInputBuilder(publishOptsInputTitleId.toString(),
                           TextInputStyle.short, 'Title')
                         ..required = false
                         ..placeholder = 'Enter title here...'),
-                      (TextInputBuilder(_publishOptsInputTagsId,
+                      (TextInputBuilder(publishOptsInputTagsId.toString(),
                           TextInputStyle.short, 'Tags & Emojis')
                         ..required = false
                         ..placeholder = 'Enter comma seperated list here...'),
-                      (TextInputBuilder(_publishOptsInputAttachmentId,
+                      (TextInputBuilder(publishOptsInputAttachmentId.toString(),
                           TextInputStyle.short, 'URL of Attachment')
                         ..required = false
                         ..placeholder = 'Enter URL of attachment here...'),
-                      (TextInputBuilder(_publishOptsInputFilenameId,
+                      (TextInputBuilder(publishOptsInputFilenameId.toString(),
                           TextInputStyle.short, 'Filename of attachment')
                         ..required = false
                         ..placeholder = 'Enter filename of attachment here...'),
@@ -330,54 +272,71 @@ class NtfyCommand {
                   ) // handle opts modal, responding with confirmation
                       .then((event) async {
                     _publishQueue[event.user]?.message =
-                        event[_publishOptsInputMessageId].emptyToNull();
-                    event[_publishOptsInputMessageId];
+                        event[publishOptsInputMessageId.toString()]
+                            .emptyToNull();
+                    event[publishOptsInputMessageId.toString()];
                     _publishQueue[event.user]?.title =
-                        event[_publishOptsInputTitleId].emptyToNull();
+                        event[publishOptsInputTitleId.toString()].emptyToNull();
                     _publishQueue[event.user]?.tags =
-                        event[_publishOptsInputTagsId]
+                        event[publishOptsInputTagsId.toString()]
                             .emptyToNull()
                             ?.split(',');
 
                     // if empty return null else return Uri.tryParse attachment url
-                    _publishQueue[event.user]
-                        ?.attach = event[_publishOptsInputAttachmentId]
-                                .emptyToNull() ==
-                            null
-                        ? null
-                        : Uri.tryParse(event[_publishOptsInputAttachmentId]);
+                    _publishQueue[event.user]?.attach =
+                        event[publishOptsInputAttachmentId.toString()]
+                                    .emptyToNull() ==
+                                null
+                            ? null
+                            : Uri.tryParse(
+                                event[publishOptsInputAttachmentId.toString()]);
 
                     _publishQueue[event.user]?.filename =
-                        event[_publishOptsInputFilenameId].emptyToNull();
+                        event[publishOptsInputFilenameId.toString()]
+                            .emptyToNull();
 
                     await event.respond(MessageBuilder.content(
                         'Info saved.  Remember to click Publish to send your message!'));
                   }));
 
+              final ComponentId publishAdvOptsInputEmailId =
+                  ComponentId.generate();
+              final ComponentId publishAdvOptsInputClickId =
+                  ComponentId.generate();
+              final ComponentId publishAdvOptsInputIconId =
+                  ComponentId.generate();
+              final ComponentId publishAdvOptsInputAuthUsernameId =
+                  ComponentId.generate();
+              final ComponentId publishAdvOptsInputAuthPasswordId =
+                  ComponentId.generate();
               // handle advanced opts button, responding with modal
-              context.awaitButtonPress(_publishAdvOptsButtonId).then((event) =>
+              context.awaitButtonPress(publishAdvOptsButtonId).then((event) =>
                   event.getModal(
                     title: 'Advanced options',
                     components: [
-                      (TextInputBuilder(_publishAdvOptsInputEmailId,
+                      (TextInputBuilder(publishAdvOptsInputEmailId.toString(),
                           TextInputStyle.short, 'Email')
                         ..required = false
                         ..placeholder = 'Enter email to be notified here...'),
-                      (TextInputBuilder(_publishAdvOptsInputClickId,
+                      (TextInputBuilder(publishAdvOptsInputClickId.toString(),
                           TextInputStyle.short, 'Click URL')
                         ..required = false
                         ..placeholder =
                             'Enter url to open when clicked on android...'),
-                      (TextInputBuilder(_publishAdvOptsInputIconId,
+                      (TextInputBuilder(publishAdvOptsInputIconId.toString(),
                           TextInputStyle.short, 'Icon URL')
                         ..required = false
                         ..placeholder = 'Enter icon URL to see on android...'),
-                      (TextInputBuilder(_publishAdvOptsInputAuthUsernameId,
-                          TextInputStyle.short, 'Authorization')
+                      (TextInputBuilder(
+                          publishAdvOptsInputAuthUsernameId.toString(),
+                          TextInputStyle.short,
+                          'Authorization')
                         ..required = false
                         ..placeholder = 'Enter username here...'),
-                      (TextInputBuilder(_publishAdvOptsInputAuthPasswordId,
-                          TextInputStyle.short, ' ')
+                      (TextInputBuilder(
+                          publishAdvOptsInputAuthPasswordId.toString(),
+                          TextInputStyle.short,
+                          ' ')
                         ..required = false
                         ..placeholder = 'Enter password here...'),
                     ],
@@ -386,31 +345,41 @@ class NtfyCommand {
                     String extraProblems = '';
 
                     _publishQueue[event.user]?.email =
-                        event[_publishAdvOptsInputEmailId].emptyToNull();
+                        event[publishAdvOptsInputEmailId.toString()]
+                            .emptyToNull();
 
                     // if Uri.tryParse click url is null, add notif to extra problems
-                    _publishQueue[event.user]?.click =
-                        Uri.tryParse(event[_publishAdvOptsInputClickId]);
+                    _publishQueue[event.user]?.click = Uri.tryParse(
+                        event[publishAdvOptsInputClickId.toString()]);
                     if (_publishQueue[event.user]?.click == null) {
                       extraProblems += 'Invalid click URL\n';
                     }
 
                     // if icon is empty return null else return Uri.tryParse icon
                     _publishQueue[event.user]?.icon =
-                        event[_publishAdvOptsInputIconId].emptyToNull() == null
+                        event[publishAdvOptsInputIconId.toString()]
+                                    .emptyToNull() ==
+                                null
                             ? null
-                            : Uri.tryParse(event[_publishAdvOptsInputIconId]);
+                            : Uri.tryParse(
+                                event[publishAdvOptsInputIconId.toString()]);
 
                     // if auth user + password not empty add auth
-                    if (event[_publishAdvOptsInputAuthUsernameId].isNotEmpty &&
-                        event[_publishAdvOptsInputAuthUsernameId].isNotEmpty) {
+                    if (event[publishAdvOptsInputAuthUsernameId.toString()]
+                            .isNotEmpty &&
+                        event[publishAdvOptsInputAuthUsernameId.toString()]
+                            .isNotEmpty) {
                       _publishQueue[event.user]?.addAuthentication(
-                          username: event[_publishAdvOptsInputAuthUsernameId],
-                          password: event[_publishAdvOptsInputAuthUsernameId]);
+                          username: event[
+                              publishAdvOptsInputAuthUsernameId.toString()],
+                          password: event[
+                              publishAdvOptsInputAuthUsernameId.toString()]);
                       // if one or other auth user + password not empty notif that auth set failed
-                    } else if (event[_publishAdvOptsInputAuthUsernameId]
+                    } else if (event[
+                                publishAdvOptsInputAuthUsernameId.toString()]
                             .isNotEmpty ||
-                        event[_publishAdvOptsInputAuthUsernameId].isNotEmpty) {
+                        event[publishAdvOptsInputAuthPasswordId.toString()]
+                            .isNotEmpty) {
                       extraProblems +=
                           'Must give username and password for auth!\n';
                     }
@@ -419,20 +388,32 @@ class NtfyCommand {
                         '$extraProblems Advanced info saved.  Remember to click Publish to send your message!'));
                   }));
 
+              final ComponentId publishViewActionInputLabelId =
+                  ComponentId.generate();
+              final ComponentId publishViewActionInputUrlId =
+                  ComponentId.generate();
+              final ComponentId publishViewActionInputClearId =
+                  ComponentId.generate();
               // handle view action button, responding with modal
-              context.awaitButtonPress(_publishViewActionButtonId).then(
+              context.awaitButtonPress(publishViewActionButtonId).then(
                   (event) =>
                       event.getModal(title: 'Add view action', components: [
-                        (TextInputBuilder(_publishViewActionInputLabelId,
-                            TextInputStyle.short, 'Label')
+                        (TextInputBuilder(
+                            publishViewActionInputLabelId.toString(),
+                            TextInputStyle.short,
+                            'Label')
                           ..required = true
                           ..placeholder = 'Enter action button label...'),
-                        (TextInputBuilder(_publishViewActionInputUrlId,
-                            TextInputStyle.short, 'URL')
+                        (TextInputBuilder(
+                            publishViewActionInputUrlId.toString(),
+                            TextInputStyle.short,
+                            'URL')
                           ..required = true
                           ..placeholder = 'Enter URL to open...'),
-                        (TextInputBuilder(_publishViewActionInputClearId,
-                            TextInputStyle.short, 'Clear?')
+                        (TextInputBuilder(
+                            publishViewActionInputClearId.toString(),
+                            TextInputStyle.short,
+                            'Clear?')
                           ..required = false
                           ..placeholder =
                               'default: false -- Clear notification after opened (true/false)...'),
@@ -444,17 +425,19 @@ class NtfyCommand {
                         bool? clear;
 
                         // notif of url invalid
-                        url = Uri.tryParse(event[_publishViewActionInputUrlId]);
+                        url = Uri.tryParse(
+                            event[publishViewActionInputUrlId.toString()]);
                         if (url == null) {
                           extraProblems += 'Invalid URL\n';
                         }
 
                         // parse clear to true or false, set to default false if failure
-                        if (event[_publishViewActionInputClearId]
+                        if (event[publishViewActionInputClearId.toString()]
                                 .toLowerCase() ==
                             'true') {
                           clear = true;
-                        } else if (event[_publishViewActionInputClearId]
+                        } else if (event[
+                                    publishViewActionInputClearId.toString()]
                                 .toLowerCase() ==
                             'false') {
                           clear = false;
@@ -467,7 +450,8 @@ class NtfyCommand {
                         //  url not null (since valid one required), send confirmation, else send warning
                         if (url != null) {
                           _publishQueue[event.user]?.addViewAction(
-                              label: event[_publishViewActionInputLabelId],
+                              label: event[
+                                  publishViewActionInputLabelId.toString()],
                               url: url,
                               clear: clear);
 
@@ -479,26 +463,42 @@ class NtfyCommand {
                         }
                       }));
 
+              final ComponentId publishBroadcastActionInputLabelId =
+                  ComponentId.generate();
+              final ComponentId publishBroadcastActionInputIntentId =
+                  ComponentId.generate();
+              final ComponentId publishBroadcastActionInputExtrasId =
+                  ComponentId.generate();
+              final ComponentId publishBroadcastActionInputClearId =
+                  ComponentId.generate();
               // handle broadcast button, responding with modal
-              context.awaitButtonPress(_publishBroadcastActionButtonId).then(
+              context.awaitButtonPress(publishBroadcastActionButtonId).then(
                   (event) => event
                           .getModal(title: 'Add broadcast action', components: [
-                        (TextInputBuilder(_publishBroadcastActionInputLabelId,
-                            TextInputStyle.short, 'Label')
+                        (TextInputBuilder(
+                            publishBroadcastActionInputLabelId.toString(),
+                            TextInputStyle.short,
+                            'Label')
                           ..required = true
                           ..placeholder = 'Enter action button label...'),
-                        (TextInputBuilder(_publishBroadcastActionInputIntentId,
-                            TextInputStyle.short, 'Intent')
+                        (TextInputBuilder(
+                            publishBroadcastActionInputIntentId.toString(),
+                            TextInputStyle.short,
+                            'Intent')
                           ..required = false
                           ..placeholder =
                               'Enter android intent name (default io.heckel.ntfy.USER_ACTION)...'),
-                        (TextInputBuilder(_publishBroadcastActionInputExtrasId,
-                            TextInputStyle.short, 'Extras')
+                        (TextInputBuilder(
+                            publishBroadcastActionInputExtrasId.toString(),
+                            TextInputStyle.short,
+                            'Extras')
                           ..required = false
                           ..placeholder =
                               'Enter android intent extras as <param>=<value>,<param>=<value>...'),
-                        (TextInputBuilder(_publishBroadcastActionInputClearId,
-                            TextInputStyle.short, 'Clear?')
+                        (TextInputBuilder(
+                            publishBroadcastActionInputClearId.toString(),
+                            TextInputStyle.short,
+                            'Clear?')
                           ..required = false
                           ..placeholder =
                               'default: false -- Clear notification after opened (true/false)...'),
@@ -508,11 +508,12 @@ class NtfyCommand {
 
                         // parse clear setting to default (false) and notif if not parsed
                         bool? clear;
-                        if (event[_publishBroadcastActionInputClearId]
+                        if (event[publishBroadcastActionInputClearId.toString()]
                                 .toLowerCase() ==
                             'true') {
                           clear = true;
-                        } else if (event[_publishBroadcastActionInputClearId]
+                        } else if (event[publishBroadcastActionInputClearId
+                                    .toString()]
                                 .toLowerCase() ==
                             'false') {
                           clear = false;
@@ -524,12 +525,14 @@ class NtfyCommand {
 
                         // parse extras, warning if not parsed, null if not present
                         Map<String, String>? extras = {};
-                        if (event[_publishBroadcastActionInputExtrasId]
+                        if (event[
+                                publishBroadcastActionInputExtrasId.toString()]
                             .isNotEmpty) {
                           try {
-                            for (final splitComma
-                                in event[_publishBroadcastActionInputExtrasId]
-                                    .split(',')) {
+                            for (final splitComma in event[
+                                    publishBroadcastActionInputExtrasId
+                                        .toString()]
+                                .split(',')) {
                               extras[splitComma.split('=').first] =
                                   splitComma.split('=').last;
                             }
@@ -544,8 +547,10 @@ class NtfyCommand {
 
                         // add action with parsed
                         _publishQueue[event.user]?.addBroadcastAction(
-                          label: event[_publishBroadcastActionInputLabelId],
-                          intent: event[_publishBroadcastActionInputIntentId],
+                          label: event[
+                              publishBroadcastActionInputLabelId.toString()],
+                          intent: event[
+                              publishBroadcastActionInputIntentId.toString()],
                           extras: extras,
                           clear: clear,
                         );
@@ -553,64 +558,91 @@ class NtfyCommand {
                             '$extraProblems View action saved.  Remember to click Publish to send your message!'));
                       }));
 
+              final ComponentId publishHttpActionInputLabelId =
+                  ComponentId.generate();
+              final ComponentId publishHttpActionInputUrlId =
+                  ComponentId.generate();
+              final ComponentId publishHttpActionInputHeadersId =
+                  ComponentId.generate();
+              final ComponentId publishHttpActionInputBodyId =
+                  ComponentId.generate();
+              final ComponentId publishHttpActionInputClearId =
+                  ComponentId.generate();
               // handle http button, responding with modal
-              context.awaitButtonPress(_publishHttpActionButtonId).then(
+              context.awaitButtonPress(publishHttpActionButtonId).then(
                   (event) =>
                       event.getModal(title: 'Add HTTP action', components: [
-                        (TextInputBuilder(_publishHttpActionInputLabelId,
-                            TextInputStyle.short, 'Label')
+                        (TextInputBuilder(
+                            publishHttpActionInputLabelId.toString(),
+                            TextInputStyle.short,
+                            'Label')
                           ..required = true
                           ..placeholder = 'Enter action button label...'),
-                        (TextInputBuilder(_publishHttpActionInputUrlId,
-                            TextInputStyle.short, 'URL')
+                        (TextInputBuilder(
+                            publishHttpActionInputUrlId.toString(),
+                            TextInputStyle.short,
+                            'URL')
                           ..required = true
                           ..placeholder = 'Enter URL to open...'),
-                        (TextInputBuilder(_publishHttpActionInputHeadersId,
-                            TextInputStyle.short, 'Headers')
+                        (TextInputBuilder(
+                            publishHttpActionInputHeadersId.toString(),
+                            TextInputStyle.short,
+                            'Headers')
                           ..required = false
                           ..placeholder =
                               'Enter headers as <param>=<value>,<param>=<value>...'),
-                        (TextInputBuilder(_publishHttpActionInputBodyId,
-                            TextInputStyle.short, 'Body')
+                        (TextInputBuilder(
+                            publishHttpActionInputBodyId.toString(),
+                            TextInputStyle.short,
+                            'Body')
                           ..required = false
                           ..placeholder = 'Enter http body...'),
-                        (TextInputBuilder(_publishHttpActionInputClearId,
-                            TextInputStyle.short, 'Clear?')
+                        (TextInputBuilder(
+                            publishHttpActionInputClearId.toString(),
+                            TextInputStyle.short,
+                            'Clear?')
                           ..required = false
                           ..placeholder =
                               'default: false -- Clear notification after opened (true/false)...'),
                       ]) // handle http modal, responding with confirmation
                           .then((httpModalEvent) async {
                         // if url valid (since required) continue
-                        if (Uri.tryParse(
-                                httpModalEvent[_publishHttpActionInputUrlId]) !=
+                        if (Uri.tryParse(httpModalEvent[
+                                publishHttpActionInputUrlId.toString()]) !=
                             null) {
                           String extraProblems = '';
 
                           // parse clear, if fail set to default (false) and notif
                           bool clear;
-                          if (httpModalEvent[_publishHttpActionInputClearId]
+                          if (httpModalEvent[
+                                      publishHttpActionInputClearId.toString()]
                                   .toLowerCase() ==
                               'true') {
                             clear = true;
                           } else if (httpModalEvent[
-                                      _publishHttpActionInputClearId]
+                                      publishHttpActionInputClearId.toString()]
                                   .toLowerCase() ==
                               'false') {
                             clear = false;
-                          } else {
+                          } else if ((httpModalEvent[
+                                  publishHttpActionInputClearId.toString()])
+                              .isNotEmpty) {
                             extraProblems +=
                                 'Invalid clear (not true or false)\n';
+                            clear = false;
+                          } else {
                             clear = false;
                           }
 
                           // parse headers, if empty null, if fail notif and set to null
                           Map<String, String>? headers = {};
-                          if (httpModalEvent[_publishHttpActionInputHeadersId]
+                          if (httpModalEvent[
+                                  publishHttpActionInputHeadersId.toString()]
                               .isNotEmpty) {
                             try {
                               for (final splitComma in httpModalEvent[
-                                      _publishHttpActionInputHeadersId]
+                                      publishHttpActionInputHeadersId
+                                          .toString()]
                                   .split(',')) {
                                 headers[splitComma.split('=').first] =
                                     splitComma.split('=').last;
@@ -640,14 +672,14 @@ class NtfyCommand {
                             // must use context.user here unfortunately
                             _publishQueue[context.user]?.addHttpAction(
                                 label: httpModalEvent[
-                                    _publishHttpActionInputLabelId],
+                                    publishHttpActionInputLabelId.toString()],
                                 url: Uri.parse(httpModalEvent[
-                                    _publishHttpActionInputUrlId]),
+                                    publishHttpActionInputUrlId.toString()]),
                                 headers: headers,
                                 method: MethodTypes.values
                                     .byName(httpTypeSelect.toLowerCase()),
                                 body: httpModalEvent[
-                                    _publishHttpActionInputBodyId],
+                                    publishHttpActionInputBodyId.toString()],
                                 clear: clear);
                             httpModalEvent.respond(MessageBuilder.content(
                                 'Method $httpTypeSelect saved!'));
@@ -671,6 +703,10 @@ class NtfyCommand {
               @Description('also show messages scheduled to sent')
                   bool? scheduled,
             ]) async {
+              final pollFilterButtonId = ComponentId.generate();
+              final pollPriorityId = ComponentId.generate();
+              final pollFetchButtonId = ComponentId.generate();
+
               if (topics.split(',').isNotEmpty) {
                 _pollQueue[context.user] = PollWrapper(topics.split(','))
                   ..since = since
@@ -679,42 +715,50 @@ class NtfyCommand {
                 ComponentMessageBuilder askOpts = ComponentMessageBuilder()
                   ..componentRows = [
                     ComponentRowBuilder()
-                      ..addComponent(MultiselectBuilder(_pollPriorityId, [
+                      ..addComponent(
+                          MultiselectBuilder(pollPriorityId.toString(), [
                         MultiselectOptionBuilder('minimum', 'min'),
                         MultiselectOptionBuilder('low', 'low'),
                         MultiselectOptionBuilder('none', 'none'),
                         MultiselectOptionBuilder('high', 'high'),
                         MultiselectOptionBuilder('maximum', 'max'),
                       ])
-                        ..placeholder = 'Choose priority(s) to filter by'
-                        ..maxValues = 4),
+                            ..placeholder = 'Choose priority(s) to filter by'
+                            ..maxValues = 4),
                     ComponentRowBuilder()
-                      ..addComponent(ButtonBuilder(
-                          'Fetch', _pollFetchButtonId, ButtonStyle.primary))
+                      ..addComponent(ButtonBuilder('Fetch',
+                          pollFetchButtonId.toString(), ButtonStyle.primary))
                       ..addComponent(ButtonBuilder('More filters',
-                          _pollFilterButtonId, ButtonStyle.secondary))
+                          pollFilterButtonId.toString(), ButtonStyle.secondary))
                   ];
 
                 context.respond(askOpts);
 
+                final ComponentId pollFilterInputMessageId =
+                    ComponentId.generate();
+                final ComponentId pollFilterInputTitleId =
+                    ComponentId.generate();
+                final ComponentId pollFilterInputTagsId =
+                    ComponentId.generate();
+                final ComponentId pollFilterInputIdId = ComponentId.generate();
                 // handle poll filter button, responding with modal
-                context.awaitButtonPress(_pollFilterButtonId).then((event) =>
+                context.awaitButtonPress(pollFilterButtonId).then((event) =>
                     event.getModal(title: 'Add filters', components: [
-                      (TextInputBuilder(_pollFilterInputMessageId,
+                      (TextInputBuilder(pollFilterInputMessageId.toString(),
                           TextInputStyle.paragraph, 'By message')
                         ..placeholder = 'Enter exact message to filter by...'
                         ..required = false),
-                      (TextInputBuilder(_pollFilterInputTitleId,
+                      (TextInputBuilder(pollFilterInputTitleId.toString(),
                           TextInputStyle.short, 'By title')
                         ..placeholder = 'Enter exact title to filter by...'
                         ..required = false),
-                      (TextInputBuilder(_pollFilterInputTagsId,
+                      (TextInputBuilder(pollFilterInputTagsId.toString(),
                           TextInputStyle.short, 'By tag(s)')
                         ..placeholder =
                             'Enter comma separated list of tags to filter by...'
                         ..required = false),
-                      (TextInputBuilder(
-                          _pollFilterInputIdId, TextInputStyle.short, 'By ID')
+                      (TextInputBuilder(pollFilterInputIdId.toString(),
+                          TextInputStyle.short, 'By ID')
                         ..placeholder = 'Enter exact message ID to filter by...'
                         ..required = false),
                     ]) // handle filter modal, responding with confirmation
@@ -722,28 +766,33 @@ class NtfyCommand {
                       if (_pollQueue[event.user]?.filters != null) {
                         _pollQueue[event.user]?.filters
                           ?..message =
-                              event[_pollFilterInputMessageId].emptyToNull()
-                          ..title = event[_pollFilterInputTitleId].emptyToNull()
-                          ..tags = event[_pollFilterInputTagsId]
+                              event[pollFilterInputMessageId.toString()]
+                                  .emptyToNull()
+                          ..title = event[pollFilterInputTitleId.toString()]
+                              .emptyToNull()
+                          ..tags = event[pollFilterInputTagsId.toString()]
                               .emptyToNull()
                               ?.split(',')
-                          ..id = event[_pollFilterInputIdId].emptyToNull();
+                          ..id = event[pollFilterInputIdId.toString()]
+                              .emptyToNull();
                       } else {
                         _pollQueue[event.user]?.filters = FilterOptions(
-                            message:
-                                event[_pollFilterInputMessageId].emptyToNull(),
-                            title: event[_pollFilterInputTitleId].emptyToNull(),
-                            tags: event[_pollFilterInputTagsId]
+                            message: event[pollFilterInputMessageId.toString()]
+                                .emptyToNull(),
+                            title: event[pollFilterInputTitleId.toString()]
+                                .emptyToNull(),
+                            tags: event[pollFilterInputTagsId.toString()]
                                 .emptyToNull()
                                 ?.split(','),
-                            id: event[_pollFilterInputIdId].emptyToNull());
+                            id: event[pollFilterInputIdId.toString()]
+                                .emptyToNull());
                       }
                       event.respond(MessageBuilder.content('Filters saved'));
                     }));
                 // handle priorities multiselect, responding with confirmation
                 context
                     .awaitMultiSelection<String>(
-                  _pollPriorityId,
+                  pollPriorityId,
                 )
                     .then((event) {
                   final priorities = event.selected
@@ -760,9 +809,7 @@ class NtfyCommand {
                 });
 
                 // handle fetch button, responding with the results of the server poll
-                context
-                    .awaitButtonPress(_pollFetchButtonId)
-                    .then((event) async {
+                context.awaitButtonPress(pollFetchButtonId).then((event) async {
                   if (_pollQueue[event.user] != null) {
                     final polled = await _state.poll(_pollQueue[event.user]!);
 
