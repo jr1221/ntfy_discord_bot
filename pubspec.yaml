@@ -1,6 +1,6 @@
 name: ntfy_discord_bot
 description: An advanced modal-based bot for interacting with the ntfy.sh API
-version: 0.0.3
+version: 0.1.0
 homepage: https://www.github.com/jr1221/ntfy_discord_bot
 publish_to: none
 

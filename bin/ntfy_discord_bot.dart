@@ -27,7 +27,7 @@ Future<void> main() async {
   final outerBot = NyxxFactory.createNyxxWebsocket(
       String.fromEnvironment('API_TOKEN'), GatewayIntents.allUnprivileged,
       options: ClientOptions(
-        shutdownHook: ntfyCommand.shutdown,
+          shutdownHook: ntfyCommand.shutdown,
           initialPresence: PresenceBuilder.of(
               status: UserStatus.online,
               activity: ActivityBuilder.game('Awaiting notifications...')),

@@ -97,7 +97,7 @@ class NtfyCommand {
   }
 
   /// Root list of commands associated with the bot
-  List<ChatCommand> get commands => [
+  List<IChatCommandComponent> get commands => [
         ChatCommand(
             'help',
             'Get info about ntfy connector',
@@ -152,6 +152,34 @@ class NtfyCommand {
 
               context.respond(aboutResponse);
             })),
+        ChatGroup(
+          'server',
+          'View and modify the server URL',
+          children: [
+            ChatCommand(
+              'set',
+              'Set the server URL',
+              id('server-set', (IChatContext context,
+                  @Description('new ntfy URL') String changedUrl) async {
+                if (Uri.tryParse(changedUrl) == null) {
+                  context.respond(MessageBuilder.content(
+                      'Url $changedUrl improperly formatted!'));
+                } else {
+                  _state.changeBasePath(Uri.parse(changedUrl));
+                  context.respond(MessageBuilder.content(
+                      'Server successfully changed to $changedUrl !  Please note this may be reverted back randomly, check back here to see what it is.'));
+                }
+              }),
+            ),
+            ChatCommand(
+                'get',
+                'Get the server URL',
+                id('server-get', (IChatContext context) async {
+                  context.respond(MessageBuilder.content(
+                      'The server URL is: ${_state.getBasePath()}'));
+                })),
+          ],
+        ),
         ChatCommand(
             'publish',
             'Send a message',

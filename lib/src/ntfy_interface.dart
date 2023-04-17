@@ -9,6 +9,10 @@ class State {
     _client.changeBasePath(basePath);
   }
 
+  Uri getBasePath() {
+    return _client.basePath;
+  }
+
   Future<MessageResponse> publish(PublishableMessage message) {
     return _client.publishMessage(message);
   }
