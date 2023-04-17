@@ -16,5 +16,5 @@ dependencies:
       url: https://github.com/jr1221/ntfy_dart
 
 dev_dependencies:
-  lints: ^2.0.0
+  lints: ^2.0.1
   test: ^1.16.0

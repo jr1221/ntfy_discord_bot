@@ -22,9 +22,12 @@ Future<void> main() async {
           type: CommandType.slashOnly,
           defaultResponseLevel: ResponseLevel.public));
 
+  final ntfyCommand = NtfyCommand();
+
   final outerBot = NyxxFactory.createNyxxWebsocket(
       String.fromEnvironment('API_TOKEN'), GatewayIntents.allUnprivileged,
       options: ClientOptions(
+        shutdownHook: ntfyCommand.shutdown,
           initialPresence: PresenceBuilder.of(
               status: UserStatus.online,
               activity: ActivityBuilder.game('Awaiting notifications...')),
@@ -36,8 +39,6 @@ Future<void> main() async {
     ..registerPlugin(
         IgnoreExceptions()) // Plugin that handles uncaught exceptions that may occur
     ..registerPlugin(commands);
-
-  final ntfyCommand = NtfyCommand();
 
   // add all commands included in ntfy_commands.dart
   for (final command in ntfyCommand.commands) {

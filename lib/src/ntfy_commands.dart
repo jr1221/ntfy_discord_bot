@@ -830,6 +830,10 @@ class NtfyCommand {
                   'This functionality is not yet available.  Please see /help to setup notifications for a message.'));
             }))
       ];
+
+  Future<void> shutdown(INyxxWebsocket client) async {
+    _state.dispose();
+  }
 }
 
 /// A wrapper to store the poll request and send it to the ntfy state interface

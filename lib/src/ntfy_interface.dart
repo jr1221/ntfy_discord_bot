@@ -19,4 +19,8 @@ class State {
         scheduled: opts.scheduled ?? false,
         filters: opts.filters);
   }
+
+  void dispose() {
+    _client.close();
+  }
 }
