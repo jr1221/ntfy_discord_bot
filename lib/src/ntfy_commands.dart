@@ -187,13 +187,16 @@ class NtfyCommand {
         ChatCommand(
             'publish',
             'Send a message',
-            id('publish', (IChatContext context,
-                @Description('Unique topic name') String topic,
-                [@Description('schedule message to send at ISO 8601 date')
-                DateTime? schedSet,
-                @Description('cache values on server') bool? cache,
-                @Description('use FCM to send messages')
-                bool? firebase]) async {
+            id('publish', (
+              IChatContext context,
+              @Description('Unique topic name') String topic, [
+              @Description('schedule message to send at ISO 8601 date')
+              DateTime? schedSet,
+              @Description('cache values on server') bool? cache,
+              @Description('use FCM to send messages') bool? firebase,
+              @Description('number to call (pro/self hosted feature)')
+              String? call,
+            ]) async {
               final publishPrioritySelectId = ComponentId.generate();
               final publishButtonId = ComponentId.generate();
               final publishOptsButtonId = ComponentId.generate();
@@ -206,6 +209,7 @@ class NtfyCommand {
               _publishQueue[context.user] = PublishableMessage(topic: topic)
                 ..cache = cache
                 ..firebase = firebase
+                ..call = call
                 ..delay = schedSet;
 
               ComponentMessageBuilder askOps = ComponentMessageBuilder()

@@ -222,10 +222,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "87872f2b413156be2ec2e532b79bec945e766e27"
+      resolved-ref: "24085cca38410c4fbcf931f28cc9ed0c4ee2c899"
       url: "https://github.com/jr1221/ntfy_dart"
     source: git
-    version: "0.1.0"
+    version: "0.1.2"
   nyxx:
     dependency: "direct main"
     description:
