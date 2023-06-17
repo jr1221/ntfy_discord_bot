@@ -76,6 +76,10 @@ class NtfyCommand {
         }
       }
     }
+    if (message.expires != null) {
+      messageEmbed.addField(
+          name: 'Expire time', content: message.expires!.toLocal());
+    }
 
     return messageEmbed;
   }
@@ -184,14 +188,12 @@ class NtfyCommand {
             'publish',
             'Send a message',
             id('publish', (IChatContext context,
-                @Description('Unique topic name')
-                    String topic,
+                @Description('Unique topic name') String topic,
                 [@Description('schedule message to send at ISO 8601 date')
-                    DateTime? schedSet,
-                @Description('cache values on server')
-                    bool? cache,
+                DateTime? schedSet,
+                @Description('cache values on server') bool? cache,
                 @Description('use FCM to send messages')
-                    bool? firebase]) async {
+                bool? firebase]) async {
               final publishPrioritySelectId = ComponentId.generate();
               final publishButtonId = ComponentId.generate();
               final publishOptsButtonId = ComponentId.generate();
@@ -725,11 +727,11 @@ class NtfyCommand {
               IChatContext context,
               @Name('topic')
               @Description('topic or topics to search by, comma separated')
-                  String topics, [
+              String topics, [
               @Description('more recent than this ISO 8601 date')
-                  DateTime? since,
+              DateTime? since,
               @Description('also show messages scheduled to sent')
-                  bool? scheduled,
+              bool? scheduled,
             ]) async {
               final pollFilterButtonId = ComponentId.generate();
               final pollPriorityId = ComponentId.generate();

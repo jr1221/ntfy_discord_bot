@@ -8,3 +8,6 @@ build/
 # IntelliJ
 .idea/
 ntfy_discord_bot.iml
+
+#VSCode
+.vscode/

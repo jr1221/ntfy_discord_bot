@@ -5,12 +5,12 @@ homepage: https://www.github.com/jr1221/ntfy_discord_bot
 publish_to: none
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   nyxx:
   nyxx_interactions:
-  nyxx_commands: ^5.0.1
+  nyxx_commands:
   ntfy_dart:
     git:
       url: https://github.com/jr1221/ntfy_dart
