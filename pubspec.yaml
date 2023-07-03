@@ -1,6 +1,6 @@
 name: ntfy_discord_bot
 description: An advanced modal-based bot for interacting with the ntfy.sh API
-version: 0.1.0
+version: 0.2.0
 homepage: https://www.github.com/jr1221/ntfy_discord_bot
 publish_to: none
 
@@ -13,7 +13,7 @@ dependencies:
   nyxx_commands:
   ntfy_dart:
     git:
-      url: https://github.com/jr1221/ntfy_dart
+      url: https://github.com/jr1221/ntfy_dart.git
 
 dev_dependencies:
   lints: ^2.0.1

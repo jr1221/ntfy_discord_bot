@@ -73,7 +73,7 @@ Future<void> main() async {
           description =
               "You can't use this command right now because it is on cooldown. Please wait ${failed.remaining(error.context).toString()} and try again.";
         } else {
-          title = "You can't use this command!";
+          title = "You can't use this command! Reason: ${failed.name}";
           description =
               'This command can only be used by certain users in certain contexts.'
               ' Check that you have permission to execute the command, or contact a developer for more information.';
