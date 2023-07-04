@@ -7,18 +7,16 @@ This bot allows you to send and poll for messages in the [ntfy](https://ntfy.sh)
 Slash Command Features in a channel or DM:
  - Publish messages with all customizations
  - Poll messages with all filters
+ - Subscribe to topics with all filters (once per user)
 
 All interface features available on the web or cURL platforms are supported through slash command arguments and modals.  
 The modals add a few clicks to actually publishing the message, but allow for greater customization.  
 
 To-do/Features not supported:
- - Subscribing to messages*
  - Re-opening a modal after submitting it. (i.e. you can only change advanced options once without starting over)
  - Preset publishing options on a per-channel or per-user basis
-
-*Subscribing to messages live via stream listening is not supported, and probably will not be.  Feel free to PR or fork to figure this out.
-It probably requires some internal DB of the different streams, as well as a full add/delete/view of such streams on a per-user basis.
-I may get around to trying this, but not for a while.
+ - Subscriptions that extend past bot lifetimes
+ - Subscriptions with multiple independent filtering profiles
 
 ### NOTICE: Messages are not encrypted in any way, and can be plainly read on the bot and ntfy API server.  Do not share sensitive data!
 
@@ -29,7 +27,7 @@ https://user-images.githubusercontent.com/53871299/210292190-eeefa801-15f5-4b93-
 
 Requirements:
  - A discord dev account with a bot configured
- - Dart version 2.18.2 or greater
+ - Dart version 3.0.0 or greater
 
 Get and unpack the [latest version](https://github.com/jr1221/ntfy_discord_bot/releases) of the source code.
 

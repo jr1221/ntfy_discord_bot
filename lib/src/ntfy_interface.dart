@@ -1,4 +1,5 @@
 import 'package:ntfy_dart/ntfy_dart.dart';
+import 'package:nyxx/nyxx.dart';
 
 class State {
   final NtfyClient _client = NtfyClient();
@@ -31,17 +32,23 @@ class State {
   }
 }
 
-/// A wrapper to store the stream request and send it to the ntfy state interface
-class StreamWrapper {
+class ParentWrapper {
   List<String> topics;
 
   FilterOptions? filters;
 
-  StreamWrapper(this.topics);
+  ParentWrapper(this.topics);
+}
+
+/// A wrapper to store the stream request and send it to the ntfy state interface
+class StreamWrapper extends ParentWrapper {
+  ISend sendPlace;
+
+  StreamWrapper(super.topics, this.sendPlace);
 }
 
 /// A wrapper to store the poll request and send it to the ntfy state interface
-class PollWrapper extends StreamWrapper {
+class PollWrapper extends ParentWrapper {
   DateTime? since;
 
   bool? scheduled;

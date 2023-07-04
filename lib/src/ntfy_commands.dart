@@ -20,15 +20,15 @@ class NtfyCommand {
     _streamLine[user] = stream.listen((event) {
       if (event.event == EventTypes.message) {
         final messageEmbed = _messageToDiscordBuilder(event);
-        user.sendMessage(ComponentMessageBuilder()
+        _streamQueue[user]!.sendPlace.sendMessage(ComponentMessageBuilder()
           ..embeds = [messageEmbed]
           ..content = 'Subscribed message, send `/subscribe clear` to cancel');
       }
     });
   }
 
-  void _notifyStreamRemove(IUser user) {
-    _streamLine[user]?.cancel();
+  Future<void> _notifyStreamRemove(IUser user) async {
+    await _streamLine[user]?.cancel();
     _streamQueue.remove(user);
     _streamLine.remove(user);
   }
@@ -154,8 +154,7 @@ class NtfyCommand {
                 ..addField(
                     name: 'Receive a message on discord',
                     content:
-                        'For the bot to DM you with the message you subscribed to, use /subscribe with your topic.  '
-                        'This can be done with multiple topics, just remember to CLEAR the list of topics when you are done')
+                        'To receive messages live, use /subscribe.  Only one initiate request is active at once, but multiple topcis can be listened to.')
                 ..addField(
                     name: 'More tips',
                     content:
@@ -769,25 +768,37 @@ class NtfyCommand {
               await _constructFilterSelection(context, true);
             })),
         ChatGroup('subscribe',
-            'Through DM only: Configure bot responses when a message is sent',
-            /*     checks: [
-              Check((context) => context.channel.channelType == ChannelType.dm,
-                  name: 'ensure DM only')
-            ], */
+            'Configure bot responses when a message is sent',
             children: [
               ChatCommand(
                   'initiate',
                   'Create a new subscription, overwriting old one!',
-                  id('subscribe-initiate', (
-                    IChatContext context,
-                    @Name('topic')
-                    @Description(
-                        'topic or topics to listen to, comma separated')
-                    String topics,
-                  ) async {
+                  id('subscribe-initiate', (IChatContext context,
+                      @Name('topic')
+                      @Description(
+                          'topic or topics to listen to, comma separated')
+                      String topics,
+                      [@Name('channel')
+                      @Description(
+                          'channel to send messages to, or blank for this channel')
+                      ITextGuildChannel? channel,
+                      @Name('dm')
+                      @Description('send messages to DM instead of channel')
+                      bool useDM = false]) async {
+                    // provision to delete current stream if initiate is called twice, basically calls clear
+                    if (_streamLine[context.user] != null) {
+                      await _notifyStreamRemove(context.user);
+                    }
+
                     if (topics.split(',').isNotEmpty) {
+                      ISend sendPlace;
+                      if (useDM) {
+                        sendPlace = context.user;
+                      } else {
+                        sendPlace = channel ?? context.channel;
+                      }
                       _streamQueue[context.user] =
-                          StreamWrapper(topics.split(','));
+                          StreamWrapper(topics.split(','), sendPlace);
                     } else {
                       await context.respond(MessageBuilder.content(
                           'Could not parse topics, please try again.'));
@@ -856,7 +867,7 @@ class NtfyCommand {
       ];
 
   _constructFilterSelection(IChatContext context, bool isPoll) {
-    Map<IUser, StreamWrapper> queue;
+    Map<IUser, ParentWrapper> queue;
     String terminationButtonLabel;
     if (isPoll) {
       queue = _pollQueue;
