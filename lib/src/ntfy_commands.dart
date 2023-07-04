@@ -7,19 +7,32 @@ import 'package:nyxx_commands/nyxx_commands.dart';
 import 'package:nyxx_interactions/nyxx_interactions.dart';
 
 class NtfyCommand {
+  // the class wrapping the underlying API library
   final State _state = State();
 
+  // the queue of messages to be published
   final Map<IUser, PublishableMessage> _publishQueue = {};
+
+  // the queue of poll queries to be made
   final Map<IUser, PollWrapper> _pollQueue = {};
+
+  // the queue of subcriptions to be begun or in progress
   final Map<IUser, StreamWrapper> _streamQueue = {};
+
+  // the index of currently open subscriptions
   final Map<IUser, StreamSubscription<MessageResponse>> _streamLine = {};
 
   NtfyCommand();
 
+  Future<void> shutdown(INyxxWebsocket client) async {
+    _state.dispose();
+  }
+
+  // listen to the stream and index it appropriately in _streamLine
   void _notifyStreamAdd(IUser user, Stream<MessageResponse> stream) {
     _streamLine[user] = stream.listen((event) {
       if (event.event == EventTypes.message) {
-        final messageEmbed = _messageToDiscordBuilder(event);
+        final messageEmbed = _messageToEmbed(event);
         _streamQueue[user]!.sendPlace.sendMessage(ComponentMessageBuilder()
           ..embeds = [messageEmbed]
           ..content = 'Subscribed message, send `/subscribe clear` to cancel');
@@ -27,36 +40,41 @@ class NtfyCommand {
     });
   }
 
+  // close out the stream listen and remove it from the index (_streamLine) and the filter queue (_streamQueue)
   Future<void> _notifyStreamRemove(IUser user) async {
     await _streamLine[user]?.cancel();
     _streamQueue.remove(user);
     _streamLine.remove(user);
   }
 
-  /// Converts multiple messages received from the API into one sendable discord nyxx message builder
+  /// Converts multiple messages received from the API into one sendable discord nyxx message builder, for poll use only
   static ComponentMessageBuilder _messagesToDiscordComponents(
       List<MessageResponse> messages) {
-    ComponentMessageBuilder leadMessage = ComponentMessageBuilder();
-    List<EmbedBuilder> embedMessages = [];
+    ComponentMessageBuilder response = ComponentMessageBuilder();
+    List<EmbedBuilder> embeds = [];
 
-    for (final message in messages.reversed) {
-      embedMessages.add(_messageToDiscordBuilder(message));
+    // ensure messages are less than 10, and greater than zero, then trim and notify.
+    if (messages.length > 10) {
+      response.content =
+          'Cannot show ${messages.length - 10} additional messages, please filter for them!';
+      messages.removeRange(10, messages.length);
+    } else if (messages.isEmpty) {
+      response.content = 'There are no cached messages to display!';
     }
-    if (embedMessages.length > 10) {
-      leadMessage.content =
-          'Cannot show ${embedMessages.length - 10} additional messages, please filter for them!';
-      embedMessages.removeRange(10, embedMessages.length);
+
+    // add embeds for each message, reversed to ensure correct newer first
+    for (final message in messages) {
+      embeds.add(_messageToEmbed(message));
     }
-    leadMessage.embeds = embedMessages.reversed.toList();
-    if (leadMessage.embeds == null || leadMessage.embeds!.isEmpty) {
-      leadMessage.content = 'There are no cached messages to display!';
-    }
-    return leadMessage;
+
+    response.embeds = embeds;
+
+    return response;
   }
 
   /// Converts a message received from the ntfy API into a pretty discord message
-  static EmbedBuilder _messageToDiscordBuilder(MessageResponse message) {
-    EmbedBuilder messageEmbed = EmbedBuilder()
+  static EmbedBuilder _messageToEmbed(MessageResponse message) {
+    EmbedBuilder embed = EmbedBuilder()
       ..author = (EmbedAuthorBuilder()..name = message.topic)
       ..timestamp = message.time
       ..title = message.title
@@ -65,31 +83,31 @@ class NtfyCommand {
       ..footer = (EmbedFooterBuilder()..text = message.id);
 
     if (message.priority != null) {
-      messageEmbed.color = _priorityToDiscordColor(message.priority!);
+      embed.color = _priorityToDiscordColor(message.priority!);
     }
 
     if (message.tags != null) {
-      messageEmbed.addField(name: 'Tags', content: message.tags!.join(','));
+      embed.addField(name: 'Tags', content: message.tags!.join(','));
     }
     if (message.attachment != null) {
-      messageEmbed.addField(
+      embed.addField(
           name: message.attachment!.name, content: message.attachment!.url);
     }
     if (message.actions != null) {
       for (final action in message.actions!) {
         switch (action.action) {
           case ActionTypes.view:
-            messageEmbed.addField(
+            embed.addField(
                 name: action.label, content: '(view action) ${action.url}');
             break;
           case ActionTypes.broadcast:
-            messageEmbed.addField(
+            embed.addField(
                 name: action.label,
                 content:
                     '(broadcast action) ${action.intent == null ? '' : 'intent: ${action.intent}'}. ${action.extras == null ? '' : 'extras: ${action.extras}'} ');
             break;
           case ActionTypes.http:
-            messageEmbed.addField(
+            embed.addField(
                 name: action.label,
                 content:
                     '(http action) ${action.method ?? 'POST'} ${action.url}. ${action.headers == null ? '' : 'headers: ${action.headers}'}. ${action.body == null ? '' : 'body: ${action.body}'}.');
@@ -98,11 +116,10 @@ class NtfyCommand {
       }
     }
     if (message.expires != null) {
-      messageEmbed.addField(
-          name: 'Expire time', content: message.expires!.toLocal());
+      embed.addField(name: 'Expire time', content: message.expires!.toLocal());
     }
 
-    return messageEmbed;
+    return embed;
   }
 
   /// Fetches the discord color corresponding the PriorityLevel given in the MessageResponse
@@ -119,6 +136,142 @@ class NtfyCommand {
       case PriorityLevels.max:
         return DiscordColor.red;
     }
+  }
+
+  /// build the filter selection message, ugily abstracted for both polling and subscribing
+  Future<void> _sendFilterSelection(IChatContext context, bool isPoll) async {
+    // the queue, abstracted from both PollWrapper and StreamWrapper, set based on isPoll
+    Map<IUser, ParentWrapper> queue;
+
+    // the button that ends the interaction, different based on isPoll
+    String terminationButtonLabel;
+
+    if (isPoll) {
+      queue = _pollQueue;
+      terminationButtonLabel = 'Fetch';
+    } else {
+      queue = _streamQueue;
+      terminationButtonLabel = 'Subscribe';
+    }
+
+    final filterButtonId = ComponentId.generate();
+    final prioritySelectId = ComponentId.generate();
+    final endButtonId = ComponentId.generate();
+
+    ComponentMessageBuilder askOpts = ComponentMessageBuilder()
+      ..componentRows = [
+        ComponentRowBuilder()
+          ..addComponent(MultiselectBuilder(prioritySelectId.toString(), [
+            MultiselectOptionBuilder('minimum', 'min'),
+            MultiselectOptionBuilder('low', 'low'),
+            MultiselectOptionBuilder('none', 'none'),
+            MultiselectOptionBuilder('high', 'high'),
+            MultiselectOptionBuilder('maximum', 'max'),
+          ])
+            ..placeholder = 'Choose priority(s) to filter by'
+            ..maxValues = 4),
+        ComponentRowBuilder()
+          ..addComponent(ButtonBuilder(terminationButtonLabel,
+              endButtonId.toString(), ButtonStyle.primary))
+          ..addComponent(ButtonBuilder(
+              'More filters', filterButtonId.toString(), ButtonStyle.secondary))
+      ];
+
+    context.respond(askOpts);
+
+    final ComponentId filterInputMessageId = ComponentId.generate();
+    final ComponentId filterInputTitleId = ComponentId.generate();
+    final ComponentId filterInputTagsId = ComponentId.generate();
+    final ComponentId filterInputIdId = ComponentId.generate();
+    // handle poll filter button, responding with modal
+    context.awaitButtonPress(filterButtonId).then(
+          (event) => event.getModal(
+            title: 'Add filters',
+            components: [
+              (TextInputBuilder(filterInputMessageId.toString(),
+                  TextInputStyle.paragraph, 'By message')
+                ..placeholder = 'Enter exact message to filter by...'
+                ..required = false),
+              (TextInputBuilder(filterInputTitleId.toString(),
+                  TextInputStyle.short, 'By title')
+                ..placeholder = 'Enter exact title to filter by...'
+                ..required = false),
+              (TextInputBuilder(filterInputTagsId.toString(),
+                  TextInputStyle.short, 'By tag(s)')
+                ..placeholder =
+                    'Enter comma separated list of tags to filter by...'
+                ..required = false),
+              (TextInputBuilder(
+                  filterInputIdId.toString(), TextInputStyle.short, 'By ID')
+                ..placeholder = 'Enter exact message ID to filter by...'
+                ..required = false),
+            ],
+          ) // handle filter modal, responding with confirmation
+              .then(
+            (event) {
+              if (queue[event.user]?.filters != null) {
+                queue[event.user]?.filters
+                  ?..message =
+                      event[filterInputMessageId.toString()].emptyToNull()
+                  ..title = event[filterInputTitleId.toString()].emptyToNull()
+                  ..tags = event[filterInputTagsId.toString()]
+                      .emptyToNull()
+                      ?.split(',')
+                  ..id = event[filterInputIdId.toString()].emptyToNull();
+              } else {
+                queue[event.user]?.filters = FilterOptions(
+                    message:
+                        event[filterInputMessageId.toString()].emptyToNull(),
+                    title: event[filterInputTitleId.toString()].emptyToNull(),
+                    tags: event[filterInputTagsId.toString()]
+                        .emptyToNull()
+                        ?.split(','),
+                    id: event[filterInputIdId.toString()].emptyToNull());
+              }
+              event.respond(MessageBuilder.content('Filters saved'));
+            },
+          ),
+        );
+
+    // handle priorities multiselect, responding with confirmation
+    context.awaitMultiSelection<String>(prioritySelectId).then(
+      (event) {
+        // makes priority listings pretty by stripping enum class name
+        final priorities = event.selected
+            .map<PriorityLevels>(
+                (e) => PriorityLevels.values.byName(e.toLowerCase()))
+            .toList();
+
+        if (queue[event.user]?.filters != null) {
+          queue[event.user]?.filters?.priority = priorities;
+        } else {
+          queue[event.user]?.filters = FilterOptions(priority: priorities);
+        }
+
+        event.respond(MessageBuilder.content('Priority(s) saved!'));
+      },
+    );
+
+    // handle fetch button, responding with the results of the server poll
+    context.awaitButtonPress(endButtonId).then(
+      (event) async {
+        if (queue[event.user] != null) {
+          // if poll, construct polling response, respond, and remove query from queue
+          if (isPoll) {
+            final polled = await _state.poll(_pollQueue[event.user]!);
+
+            event.respond(
+                _messagesToDiscordComponents(polled.reversed.toList()));
+            _pollQueue.remove(event.user);
+          } else {
+            // if subscribe, fetch stream and notify a construction of a listener, then confirm
+            final stream = await _state.get(_streamQueue[event.user]!);
+            _notifyStreamAdd(event.user, stream);
+            event.respond(MessageBuilder.content('Successfully subscribed'));
+          }
+        }
+      },
+    );
   }
 
   /// Root list of commands associated with the bot
@@ -283,7 +436,7 @@ class NtfyCommand {
                 final apiResponse =
                     await _state.publish(_publishQueue[event.user]!);
                 event.respond(ComponentMessageBuilder()
-                  ..embeds = [_messageToDiscordBuilder(apiResponse)]
+                  ..embeds = [_messageToEmbed(apiResponse)]
                   ..content = 'How the message will look over discord:');
                 _publishQueue.remove(event.user);
               });
@@ -765,10 +918,9 @@ class NtfyCommand {
                     'Could not parse topics, please try again.'));
                 return;
               }
-              await _constructFilterSelection(context, true);
+              await _sendFilterSelection(context, true);
             })),
-        ChatGroup('subscribe',
-            'Configure bot responses when a message is sent',
+        ChatGroup('subscribe', 'Configure bot responses when a message is sent',
             children: [
               ChatCommand(
                   'initiate',
@@ -804,7 +956,7 @@ class NtfyCommand {
                           'Could not parse topics, please try again.'));
                       return;
                     }
-                    await _constructFilterSelection(context, false);
+                    await _sendFilterSelection(context, false);
                   })),
               ChatCommand(
                   'get',
@@ -817,6 +969,7 @@ class NtfyCommand {
                               iconUrl: context.user.avatarUrl(),
                               name: context.user.globalName),
                           color: _priorityToDiscordColor(
+                              // use last priority or none to get estimate of what is being filtered
                               opts.filters?.priority?.last ??
                                   PriorityLevels.none),
                           url: '${_state.getBasePath()}${opts.topics.last}',
@@ -865,124 +1018,6 @@ class NtfyCommand {
                   })),
             ]),
       ];
-
-  _constructFilterSelection(IChatContext context, bool isPoll) {
-    Map<IUser, ParentWrapper> queue;
-    String terminationButtonLabel;
-    if (isPoll) {
-      queue = _pollQueue;
-      terminationButtonLabel = 'Fetch';
-    } else {
-      queue = _streamQueue;
-      terminationButtonLabel = 'Subscribe';
-    }
-
-    final filterButtonId = ComponentId.generate();
-    final prioritySelectId = ComponentId.generate();
-    final endButtonId = ComponentId.generate();
-
-    ComponentMessageBuilder askOpts = ComponentMessageBuilder()
-      ..componentRows = [
-        ComponentRowBuilder()
-          ..addComponent(MultiselectBuilder(prioritySelectId.toString(), [
-            MultiselectOptionBuilder('minimum', 'min'),
-            MultiselectOptionBuilder('low', 'low'),
-            MultiselectOptionBuilder('none', 'none'),
-            MultiselectOptionBuilder('high', 'high'),
-            MultiselectOptionBuilder('maximum', 'max'),
-          ])
-            ..placeholder = 'Choose priority(s) to filter by'
-            ..maxValues = 4),
-        ComponentRowBuilder()
-          ..addComponent(ButtonBuilder(terminationButtonLabel,
-              endButtonId.toString(), ButtonStyle.primary))
-          ..addComponent(ButtonBuilder(
-              'More filters', filterButtonId.toString(), ButtonStyle.secondary))
-      ];
-
-    context.respond(askOpts);
-
-    final ComponentId filterInputMessageId = ComponentId.generate();
-    final ComponentId filterInputTitleId = ComponentId.generate();
-    final ComponentId filterInputTagsId = ComponentId.generate();
-    final ComponentId filterInputIdId = ComponentId.generate();
-    // handle poll filter button, responding with modal
-    context.awaitButtonPress(filterButtonId).then((event) =>
-        event.getModal(title: 'Add filters', components: [
-          (TextInputBuilder(filterInputMessageId.toString(),
-              TextInputStyle.paragraph, 'By message')
-            ..placeholder = 'Enter exact message to filter by...'
-            ..required = false),
-          (TextInputBuilder(
-              filterInputTitleId.toString(), TextInputStyle.short, 'By title')
-            ..placeholder = 'Enter exact title to filter by...'
-            ..required = false),
-          (TextInputBuilder(
-              filterInputTagsId.toString(), TextInputStyle.short, 'By tag(s)')
-            ..placeholder = 'Enter comma separated list of tags to filter by...'
-            ..required = false),
-          (TextInputBuilder(
-              filterInputIdId.toString(), TextInputStyle.short, 'By ID')
-            ..placeholder = 'Enter exact message ID to filter by...'
-            ..required = false),
-        ]) // handle filter modal, responding with confirmation
-            .then((event) {
-          if (queue[event.user]?.filters != null) {
-            queue[event.user]?.filters
-              ?..message = event[filterInputMessageId.toString()].emptyToNull()
-              ..title = event[filterInputTitleId.toString()].emptyToNull()
-              ..tags =
-                  event[filterInputTagsId.toString()].emptyToNull()?.split(',')
-              ..id = event[filterInputIdId.toString()].emptyToNull();
-          } else {
-            queue[event.user]?.filters = FilterOptions(
-                message: event[filterInputMessageId.toString()].emptyToNull(),
-                title: event[filterInputTitleId.toString()].emptyToNull(),
-                tags: event[filterInputTagsId.toString()]
-                    .emptyToNull()
-                    ?.split(','),
-                id: event[filterInputIdId.toString()].emptyToNull());
-          }
-          event.respond(MessageBuilder.content('Filters saved'));
-        }));
-    // handle priorities multiselect, responding with confirmation
-    context
-        .awaitMultiSelection<String>(
-      prioritySelectId,
-    )
-        .then((event) {
-      final priorities = event.selected
-          .map<PriorityLevels>(
-              (e) => PriorityLevels.values.byName(e.toLowerCase()))
-          .toList();
-      if (queue[event.user]?.filters != null) {
-        queue[event.user]?.filters?.priority = priorities;
-      } else {
-        queue[event.user]?.filters = FilterOptions(priority: priorities);
-      }
-      event.respond(MessageBuilder.content('Priority(s) saved!'));
-    });
-
-    // handle fetch button, responding with the results of the server poll
-    context.awaitButtonPress(endButtonId).then((event) async {
-      if (queue[event.user] != null) {
-        if (isPoll) {
-          final polled = await _state.poll(_pollQueue[event.user]!);
-
-          event.respond(_messagesToDiscordComponents(polled));
-          _pollQueue.remove(event.user);
-        } else {
-          final stream = await _state.get(_streamQueue[event.user]!);
-          _notifyStreamAdd(event.user, stream);
-          event.respond(MessageBuilder.content('Successfully subscribed'));
-        }
-      }
-    });
-  }
-
-  Future<void> shutdown(INyxxWebsocket client) async {
-    _state.dispose();
-  }
 }
 
 extension on String {

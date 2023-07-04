@@ -15,6 +15,7 @@ Future<void> main() async {
 
   CommandsPlugin commands = CommandsPlugin(
       prefix: null,
+      // give GUILD_ID if set, else give null to scope slash commands as global
       guild: bool.hasEnvironment('GUILD_ID')
           ? Snowflake(String.fromEnvironment('GUILD_ID'))
           : null,
@@ -25,14 +26,18 @@ Future<void> main() async {
   final ntfyCommand = NtfyCommand();
 
   final outerBot = NyxxFactory.createNyxxWebsocket(
-      String.fromEnvironment('API_TOKEN'), GatewayIntents.allUnprivileged,
-      options: ClientOptions(
-          shutdownHook: ntfyCommand.shutdown,
-          initialPresence: PresenceBuilder.of(
-              status: UserStatus.online,
-              activity: ActivityBuilder.game('Awaiting notifications...')),
-          allowedMentions: AllowedMentions()
-            ..allow(everyone: false, users: false, roles: false, reply: false)))
+    String.fromEnvironment('API_TOKEN'),
+    GatewayIntents.allUnprivileged,
+    options: ClientOptions(
+      shutdownHook: ntfyCommand.shutdown,
+      initialPresence: PresenceBuilder.of(
+        status: UserStatus.online,
+        activity: ActivityBuilder.game('Awaiting notifications...'),
+      ),
+      allowedMentions: AllowedMentions()
+        ..allow(everyone: false, users: false, roles: false, reply: false),
+    ),
+  )
     ..registerPlugin(Logging()) // Default logging plugin
     ..registerPlugin(
         CliIntegration()) // Cli integration for nyxx allows stopping application via SIGTERM and SIGKILl
@@ -48,7 +53,7 @@ Future<void> main() async {
   // add info command from info_command.dart
   commands.addCommand(InfoCommand().infoCommand);
 
-  // create and add DateTime converter for Duration set ino publishing messages
+  // create and add DateTime converter for Duration set in publishing and polling messages
   Converter<DateTime> dateTimeConverter =
       Converter<DateTime>((viewRaw, context) {
     String view = viewRaw.getQuotedWord();
@@ -61,9 +66,11 @@ Future<void> main() async {
 
   // handle errors a little more gracefully, most of the exceptions in here cannot be thrown by this app
   commands.onCommandError.listen((error) async {
+    
     if (error is CommandInvocationException) {
       String? title;
       String? description;
+
       if (error is CheckFailedException) {
         // Should not really hit these with slash commands
         final failed = error.failed;
@@ -92,6 +99,8 @@ Future<void> main() async {
             " Please try again with different inputs or contact a developer for more information.";
       } else if (error is UncaughtException) {
         print('Uncaught exception in command: ${error.exception}');
+        title = 'A command threw an exception!';
+        description = 'Unfortunately, such problems are unrecoverable, please open a Github issue with steps to reproduce.';
       }
 
       // Send a generic response using above [title] and [description] fills
@@ -128,5 +137,6 @@ Future<void> main() async {
         rateLimitedEvent.response?.reasonPhrase ?? rateLimitedEvent.toString());
   });
 
+  // connect to the bot
   outerBot.connect();
 }
