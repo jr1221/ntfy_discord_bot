@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:ntfy_discord_bot/src/db/database.dart';
+import 'package:ntfy_discord_bot/src/wrappers.dart';
+
 import './ntfy_interface.dart';
 import 'package:ntfy_dart/ntfy_dart.dart';
 import 'package:nyxx/nyxx.dart' hide ActionTypes, EventTypes;
@@ -22,10 +25,15 @@ class NtfyCommand {
   // the index of currently open subscriptions
   final Map<IUser, StreamSubscription<MessageResponse>> _streamLine = {};
 
+  // db
+  final ConfDatabase database = ConfDatabase();
+
   NtfyCommand();
 
   Future<void> shutdown(INyxxWebsocket client) async {
     _state.dispose();
+    await database.close();
+    await client.dispose();
   }
 
   // listen to the stream and index it appropriately in _streamLine
@@ -47,6 +55,18 @@ class NtfyCommand {
     _streamLine.remove(user);
   }
 
+  Future<Uri> _getBasepath(IChatContext context) async {
+    return Uri.parse((await database
+                .fetchBasepathDirective(context.guild?.id ?? context.user.id))
+            ?.basePath ??
+        'https://ntfy.sh/');
+  }
+
+  Future<void> _updateBasepath(IChatContext context, String changedUrl) async {
+    await database.updateBasepath(
+        context.guild?.id ?? context.user.id, changedUrl);
+  }
+
   /// Converts multiple messages received from the API into one sendable discord nyxx message builder, for poll use only
   static ComponentMessageBuilder _messagesToDiscordComponents(
       List<MessageResponse> messages) {
@@ -62,8 +82,8 @@ class NtfyCommand {
       response.content = 'There are no cached messages to display!';
     }
 
-    // add embeds for each message, reversed to ensure correct newer first
-    for (final message in messages) {
+    // add embeds for each message, reversed to ensure correct newer first, (cant reverse earlier because of trim)
+    for (final message in messages.reversed) {
       embeds.add(_messageToEmbed(message));
     }
 
@@ -258,14 +278,16 @@ class NtfyCommand {
         if (queue[event.user] != null) {
           // if poll, construct polling response, respond, and remove query from queue
           if (isPoll) {
-            final polled = await _state.poll(_pollQueue[event.user]!);
+            final polled = await _state.poll(
+                _pollQueue[event.user]!, await _getBasepath(context));
 
             event.respond(
                 _messagesToDiscordComponents(polled.reversed.toList()));
             _pollQueue.remove(event.user);
           } else {
             // if subscribe, fetch stream and notify a construction of a listener, then confirm
-            final stream = await _state.get(_streamQueue[event.user]!);
+            final stream = await _state.get(
+                _streamQueue[event.user]!, await _getBasepath(context));
             _notifyStreamAdd(event.user, stream);
             event.respond(MessageBuilder.content('Successfully subscribed'));
           }
@@ -330,7 +352,7 @@ class NtfyCommand {
             })),
         ChatGroup(
           'server',
-          'View and modify the server URL',
+          'View and modify the server URL, saved per-guild',
           children: [
             ChatCommand(
               'set',
@@ -341,9 +363,9 @@ class NtfyCommand {
                   context.respond(MessageBuilder.content(
                       'Url $changedUrl improperly formatted!'));
                 } else {
-                  _state.changeBasePath(Uri.parse(changedUrl));
+                  await _updateBasepath(context, changedUrl);
                   context.respond(MessageBuilder.content(
-                      'Server successfully changed to $changedUrl !  Please note this may be reverted back randomly, check back here to see what it is.'));
+                      'Server successfully changed to $changedUrl !  This is saved on a per-guild basis, or per-user if it is a DM.'));
                 }
               }),
             ),
@@ -352,7 +374,15 @@ class NtfyCommand {
                 'Get the server URL',
                 id('server-get', (IChatContext context) async {
                   context.respond(MessageBuilder.content(
-                      'The server URL is: ${_state.getBasePath()}'));
+                      'The server URL is: ${await _getBasepath(context)}'));
+                })),
+            ChatCommand(
+                'reset',
+                'Reset the server URL to default (ntfy.sh)',
+                id('server-reset', (IChatContext context) async {
+                  await _updateBasepath(context, 'https://ntfy.sh/');
+                  context.respond(MessageBuilder.content(
+                      'Server successfully changed to https://ntfy.sh/ !  This is saved on a per-guild basis, or per-user if it is a DM.'));
                 })),
           ],
         ),
@@ -433,8 +463,8 @@ class NtfyCommand {
               // handle publish button, responding with message receipt returned by server
               context.awaitButtonPress(publishButtonId).then((event) async {
                 await event.acknowledge();
-                final apiResponse =
-                    await _state.publish(_publishQueue[event.user]!);
+                final apiResponse = await _state.publish(
+                    _publishQueue[event.user]!, await _getBasepath(context));
                 event.respond(ComponentMessageBuilder()
                   ..embeds = [_messageToEmbed(apiResponse)]
                   ..content = 'How the message will look over discord:');
@@ -949,8 +979,10 @@ class NtfyCommand {
                       } else {
                         sendPlace = channel ?? context.channel;
                       }
-                      _streamQueue[context.user] =
-                          StreamWrapper(topics.split(','), sendPlace);
+                      _streamQueue[context.user] = StreamWrapper(
+                          topics.split(','),
+                          sendPlace,
+                          await _getBasepath(context));
                     } else {
                       await context.respond(MessageBuilder.content(
                           'Could not parse topics, please try again.'));
@@ -972,7 +1004,7 @@ class NtfyCommand {
                               // use last priority or none to get estimate of what is being filtered
                               opts.filters?.priority?.last ??
                                   PriorityLevels.none),
-                          url: '${_state.getBasePath()}${opts.topics.last}',
+                          url: '${opts.basePath}${opts.topics.last}',
                           title: opts.topics.toString(),
                           description: 'Filters:');
 

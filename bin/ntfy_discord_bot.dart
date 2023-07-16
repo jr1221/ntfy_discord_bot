@@ -66,7 +66,6 @@ Future<void> main() async {
 
   // handle errors a little more gracefully, most of the exceptions in here cannot be thrown by this app
   commands.onCommandError.listen((error) async {
-    
     if (error is CommandInvocationException) {
       String? title;
       String? description;
@@ -100,7 +99,8 @@ Future<void> main() async {
       } else if (error is UncaughtException) {
         print('Uncaught exception in command: ${error.exception}');
         title = 'A command threw an exception!';
-        description = 'Unfortunately, such problems are unrecoverable, please open a Github issue with steps to reproduce.';
+        description =
+            'Unfortunately, such problems are unrecoverable, please open a Github issue with steps to reproduce.';
       }
 
       // Send a generic response using above [title] and [description] fills

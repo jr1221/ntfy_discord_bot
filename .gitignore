@@ -11,3 +11,6 @@ ntfy_discord_bot.iml
 
 #VSCode
 .vscode/
+
+# databse
+db.sqlite

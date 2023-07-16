@@ -1,5 +1,5 @@
 import 'package:ntfy_dart/ntfy_dart.dart';
-import 'package:nyxx/nyxx.dart';
+import 'package:ntfy_discord_bot/src/wrappers.dart';
 
 class State {
   final NtfyClient _client = NtfyClient();
@@ -12,46 +12,25 @@ class State {
     return _client.basePath;
   }
 
-  Future<MessageResponse> publish(PublishableMessage message) {
+  Future<MessageResponse> publish(PublishableMessage message, Uri basePath) {
+    changeBasePath(basePath);
     return _client.publishMessage(message);
   }
 
-  Future<List<MessageResponse>> poll(PollWrapper opts) {
+  Future<List<MessageResponse>> poll(PollWrapper opts, Uri basePath) {
+    changeBasePath(basePath);
     return _client.pollMessages(opts.topics,
         since: opts.since,
         scheduled: opts.scheduled ?? false,
         filters: opts.filters);
   }
 
-  Future<Stream<MessageResponse>> get(StreamWrapper opts) async {
+  Future<Stream<MessageResponse>> get(StreamWrapper opts, Uri basePath) async {
+    changeBasePath(basePath);
     return await _client.getMessageStream(opts.topics, filters: opts.filters);
   }
 
   void dispose() {
     _client.close();
   }
-}
-
-class ParentWrapper {
-  List<String> topics;
-
-  FilterOptions? filters;
-
-  ParentWrapper(this.topics);
-}
-
-/// A wrapper to store the stream request and send it to the ntfy state interface
-class StreamWrapper extends ParentWrapper {
-  ISend sendPlace;
-
-  StreamWrapper(super.topics, this.sendPlace);
-}
-
-/// A wrapper to store the poll request and send it to the ntfy state interface
-class PollWrapper extends ParentWrapper {
-  DateTime? since;
-
-  bool? scheduled;
-
-  PollWrapper(super.topics);
 }
