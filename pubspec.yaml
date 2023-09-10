@@ -9,8 +9,13 @@ environment:
 
 dependencies:
   nyxx:
-  nyxx_interactions:
+      git:
+        url: https://github.com/nyxx-discord/nyxx.git
+        ref: next
   nyxx_commands:
+    git:
+      url: https://github.com/nyxx-discord/nyxx-commands.git
+      ref: feat/nyxx-6.0.0
   ntfy_dart:
     git:
       url: https://github.com/jr1221/ntfy_dart.git
@@ -22,3 +27,11 @@ dev_dependencies:
   test: ^1.16.0
   drift_dev: ^2.9.0
   build_runner: ^2.4.5
+
+dependency_overrides:
+  nyxx:
+      git:
+        url: https://github.com/nyxx-discord/nyxx.git
+        ref: next
+
+    

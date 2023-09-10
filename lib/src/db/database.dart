@@ -26,13 +26,13 @@ class ConfDatabase extends _$ConfDatabase {
 
   Future<ServerBasepathDirectiveData?> fetchBasepathDirective(Snowflake id) {
     return (select(serverBasepathDirective)
-          ..where((tbl) => tbl.id.equals(id.id)))
+          ..where((tbl) => tbl.id.equals(id.value)))
         .getSingleOrNull();
   }
 
   Future<void> updateBasepath(Snowflake id, String basePath) {
     return into(serverBasepathDirective).insert(
-        ServerBasepathDirectiveData(id: id.id, basePath: basePath),
+        ServerBasepathDirectiveData(id: id.value, basePath: basePath),
         mode: InsertMode.insertOrReplace);
   }
 }

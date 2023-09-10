@@ -17,7 +17,7 @@ Future<void> main() async {
       prefix: null,
       // give GUILD_ID if set, else give null to scope slash commands as global
       guild: bool.hasEnvironment('GUILD_ID')
-          ? Snowflake(String.fromEnvironment('GUILD_ID'))
+          ? Snowflake.parse(String.fromEnvironment('GUILD_ID'))
           : null,
       options: CommandsOptions(
           type: CommandType.slashOnly,
@@ -25,33 +25,13 @@ Future<void> main() async {
 
   final ntfyCommand = NtfyCommand();
 
-  final outerBot = NyxxFactory.createNyxxWebsocket(
-    String.fromEnvironment('API_TOKEN'),
-    GatewayIntents.allUnprivileged,
-    options: ClientOptions(
-      shutdownHook: ntfyCommand.shutdown,
-      initialPresence: PresenceBuilder.of(
-        status: UserStatus.online,
-        activity: ActivityBuilder.game('Awaiting notifications...'),
-      ),
-      allowedMentions: AllowedMentions()
-        ..allow(everyone: false, users: false, roles: false, reply: false),
-    ),
-  )
-    ..registerPlugin(Logging()) // Default logging plugin
-    ..registerPlugin(
-        CliIntegration()) // Cli integration for nyxx allows stopping application via SIGTERM and SIGKILl
-    ..registerPlugin(
-        IgnoreExceptions()) // Plugin that handles uncaught exceptions that may occur
-    ..registerPlugin(commands);
-
   // add all commands included in ntfy_commands.dart
   for (final command in ntfyCommand.commands) {
     commands.addCommand(command);
   }
 
   // add info command from info_command.dart
-  commands.addCommand(InfoCommand().infoCommand);
+  commands.addCommand(InfoCommand(startupTime: DateTime.now()).infoCommand);
 
   // create and add DateTime converter for Duration set in publishing and polling messages
   Converter<DateTime> dateTimeConverter =
@@ -105,16 +85,14 @@ Future<void> main() async {
 
       // Send a generic response using above [title] and [description] fills
       final embed = EmbedBuilder()
-        ..color = DiscordColor.red
+        // TODO red? ..color = DiscordColor.red
         ..title = title ?? 'An error has occurred'
         ..description = description ??
             "Your command couldn't be executed because of an error. Please contact a developer for more information."
-        ..addFooter((footer) {
-          footer.text = error.runtimeType.toString();
-        })
+        ..footer = EmbedFooterBuilder(text: error.runtimeType.toString())
         ..timestamp = DateTime.now();
 
-      await error.context.respond(MessageBuilder.embed(embed));
+      await error.context.respond(MessageBuilder(embeds: [embed]));
       return;
     }
 
@@ -122,8 +100,8 @@ Future<void> main() async {
       final context = error.context;
       if (error is ConverterFailedException &&
           context is InteractionChatContext) {
-        await context.respond(MessageBuilder.content(
-            '${error.input.getQuotedWord()} is not a valid date!'));
+        await context.respond(MessageBuilder(
+            content: '${error.input.getQuotedWord()} is not a valid date!'));
         return;
       }
     }
@@ -131,12 +109,30 @@ Future<void> main() async {
     print('Unhandled exception: $error');
   });
 
-  // print rate limit events if they happen
-  outerBot.eventsRest.onRateLimited.listen((rateLimitedEvent) {
+  await Nyxx.connectGatewayWithOptions(
+    GatewayApiOptions(
+      token: String.fromEnvironment('API_TOKEN'),
+      intents: GatewayIntents.allUnprivileged,
+      initialPresence: PresenceBuilder(
+        isAfk: false,
+        status: CurrentUserStatus.online,
+        activities: [
+          ActivityBuilder(
+              name: 'Awaiting notifications...', type: ActivityType.watching)
+        ],
+      ),
+    ),
+    GatewayClientOptions(
+      plugins: [CliIntegration(), IgnoreExceptions(), Logging(), commands],
+      // shutdownHook: ntfyCommand.shutdown, TODO shutdown hook
+      // TODO turn false all allowed mentions
+    ),
+  );
+
+  // TODO print rate limit events if they happen
+  /* outerBot.gateway.events.listen((event) {
+    if (event is RateLimitedEvent)
     print(
         rateLimitedEvent.response?.reasonPhrase ?? rateLimitedEvent.toString());
-  });
-
-  // connect to the bot
-  outerBot.connect();
+  }); */
 }
