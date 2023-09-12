@@ -394,8 +394,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "12604fc76c6e76e49f4ccceb2fd8d9752ad5a579"
+      ref: "v0.4.0"
+      resolved-ref: "8aba0437f9a97de2be816f656139348dea1c1fe9"
       url: "https://github.com/jr1221/ntfy_dart.git"
     source: git
     version: "0.4.0"

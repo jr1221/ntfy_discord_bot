@@ -14,7 +14,7 @@ Future<void> main() async {
   }
 
   CommandsPlugin commands = CommandsPlugin(
-      prefix: null,
+      prefix: (_) => '!', // TODO should be null when fixed
       // give GUILD_ID if set, else give null to scope slash commands as global
       guild: bool.hasEnvironment('GUILD_ID')
           ? Snowflake.parse(String.fromEnvironment('GUILD_ID'))
@@ -123,7 +123,12 @@ Future<void> main() async {
       ),
     ),
     GatewayClientOptions(
-      plugins: [CliIntegration(), IgnoreExceptions(), Logging(), commands],
+      plugins: [
+        CliIntegration(),
+        IgnoreExceptions(),
+        Logging(logLevel: Level.ALL),
+        commands
+      ],
       // shutdownHook: ntfyCommand.shutdown, TODO shutdown hook
       // TODO turn false all allowed mentions
     ),
