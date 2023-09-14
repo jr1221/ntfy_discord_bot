@@ -8,22 +8,15 @@ import 'package:nyxx_commands/nyxx_commands.dart';
 Future<void> main() async {
   // check to ensure API_TOKEN is set, or else somewhat cryptic message is returned
   if (!bool.hasEnvironment('API_TOKEN')) {
-    print(
-        'Error: API_TOKEN env var unset. Use --define=<KEY>=<VALUE> to set it!');
+    print('Error: API_TOKEN env var unset. Use --define=<KEY>=<VALUE> to set it!');
     return;
   }
 
   CommandsPlugin commands = CommandsPlugin(
       prefix: (_) => '!', // TODO should be null when fixed
       // give GUILD_ID if set, else give null to scope slash commands as global
-      guild: bool.hasEnvironment('GUILD_ID')
-          ? Snowflake.parse(String.fromEnvironment('GUILD_ID'))
-          : null,
-      options: CommandsOptions(
-          type: CommandType.slashOnly,
-          defaultResponseLevel: ResponseLevel.public));
-
-  final ntfyCommand = NtfyCommand();
+      guild: bool.hasEnvironment('GUILD_ID') ? Snowflake.parse(String.fromEnvironment('GUILD_ID')) : null,
+      options: CommandsOptions(type: CommandType.slashOnly, defaultResponseLevel: ResponseLevel.public));
 
   // add all commands included in ntfy_commands.dart
   for (final command in ntfyCommand.commands) {
@@ -34,8 +27,7 @@ Future<void> main() async {
   commands.addCommand(InfoCommand(startupTime: DateTime.now()).infoCommand);
 
   // create and add DateTime converter for Duration set in publishing and polling messages
-  Converter<DateTime> dateTimeConverter =
-      Converter<DateTime>((viewRaw, context) {
+  Converter<DateTime> dateTimeConverter = Converter<DateTime>((viewRaw, context) {
     String view = viewRaw.getQuotedWord();
     return DateTime.tryParse(view);
   });
@@ -60,8 +52,7 @@ Future<void> main() async {
               "You can't use this command right now because it is on cooldown. Please wait ${failed.remaining(error.context).toString()} and try again.";
         } else {
           title = "You can't use this command! Reason: ${failed.name}";
-          description =
-              'This command can only be used by certain users in certain contexts.'
+          description = 'This command can only be used by certain users in certain contexts.'
               ' Check that you have permission to execute the command, or contact a developer for more information.';
         }
       }
@@ -73,22 +64,19 @@ Future<void> main() async {
             " Please try again and use the Slash Command menu for help, or contact a developer for more information.";
       } else if (error is BadInputException) {
         title = "Couldn't parse input";
-        description =
-            "Your command couldn't be executed because we were unable to understand your input."
+        description = "Your command couldn't be executed because we were unable to understand your input."
             " Please try again with different inputs or contact a developer for more information.";
       } else if (error is UncaughtException) {
         print('Uncaught exception in command: ${error.exception}');
         title = 'A command threw an exception!';
-        description =
-            'Unfortunately, such problems are unrecoverable, please open a Github issue with steps to reproduce.';
+        description = 'Unfortunately, such problems are unrecoverable, please open a Github issue with steps to reproduce.';
       }
 
       // Send a generic response using above [title] and [description] fills
       final embed = EmbedBuilder()
         // TODO red? ..color = DiscordColor.red
         ..title = title ?? 'An error has occurred'
-        ..description = description ??
-            "Your command couldn't be executed because of an error. Please contact a developer for more information."
+        ..description = description ?? "Your command couldn't be executed because of an error. Please contact a developer for more information."
         ..footer = EmbedFooterBuilder(text: error.runtimeType.toString())
         ..timestamp = DateTime.now();
 
@@ -98,10 +86,8 @@ Future<void> main() async {
 
     if (error is BadInputException) {
       final context = error.context;
-      if (error is ConverterFailedException &&
-          context is InteractionChatContext) {
-        await context.respond(MessageBuilder(
-            content: '${error.input.getQuotedWord()} is not a valid date!'));
+      if (error is ConverterFailedException && context is InteractionChatContext) {
+        await context.respond(MessageBuilder(content: '${error.input.getQuotedWord()} is not a valid date!'));
         return;
       }
     }
@@ -116,19 +102,11 @@ Future<void> main() async {
       initialPresence: PresenceBuilder(
         isAfk: false,
         status: CurrentUserStatus.online,
-        activities: [
-          ActivityBuilder(
-              name: 'Awaiting notifications...', type: ActivityType.watching)
-        ],
+        activities: [ActivityBuilder(name: 'Awaiting notifications...', type: ActivityType.watching)],
       ),
     ),
     GatewayClientOptions(
-      plugins: [
-        CliIntegration(),
-        IgnoreExceptions(),
-        Logging(logLevel: Level.ALL),
-        commands
-      ],
+      plugins: [cliIntegration, ignoreExceptions, logging, commands],
       // shutdownHook: ntfyCommand.shutdown, TODO shutdown hook
       // TODO turn false all allowed mentions
     ),
