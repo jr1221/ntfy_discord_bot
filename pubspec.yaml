@@ -9,9 +9,7 @@ environment:
 
 dependencies:
   nyxx:
-      git:
-        url: https://github.com/nyxx-discord/nyxx.git
-        ref: next
+      path: /home/jack/Documents/Projects/nyxx
   nyxx_commands:
     git:
       url: https://github.com/nyxx-discord/nyxx-commands.git
@@ -19,7 +17,7 @@ dependencies:
   ntfy_dart:
     git:
       url: https://github.com/jr1221/ntfy_dart.git
-      ref: v0.4.0
+      ref: v0.4.1
   drift: ^2.9.0
   sqlite3_flutter_libs: ^0.5.0
   path: ^1.8.3
@@ -31,8 +29,6 @@ dev_dependencies:
 
 dependency_overrides:
   nyxx:
-      git:
-        url: https://github.com/nyxx-discord/nyxx.git
-        ref: next
+      path: /home/jack/Documents/Projects/nyxx
 
     

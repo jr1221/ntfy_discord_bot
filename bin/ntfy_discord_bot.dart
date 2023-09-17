@@ -95,7 +95,7 @@ Future<void> main() async {
     print('Unhandled exception: $error');
   });
 
-  await Nyxx.connectGatewayWithOptions(
+  final outerBot = await Nyxx.connectGatewayWithOptions(
     GatewayApiOptions(
       token: String.fromEnvironment('API_TOKEN'),
       intents: GatewayIntents.allUnprivileged,
@@ -112,10 +112,7 @@ Future<void> main() async {
     ),
   );
 
-  // TODO print rate limit events if they happen
-  /* outerBot.gateway.events.listen((event) {
-    if (event is RateLimitedEvent)
-    print(
-        rateLimitedEvent.response?.reasonPhrase ?? rateLimitedEvent.toString());
-  }); */
+  outerBot.httpHandler.onRateLimit.listen((event) {
+    print('Rate limit event: ${event.toString()}');
+  });
 }
